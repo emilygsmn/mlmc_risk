@@ -1,6 +1,3 @@
 input: 
-  config:
-    path: "data/config/path.yaml"
-    param: "data/config/param.yaml"
-  data:
-    portfolio: "data/raw/MCRCS_2024_instruments_and_BMP.xlsx"
+  param_config: "data/config/param.yaml"
+  portfolio_data: "data/raw/MCRCS_2024_instruments_and_BMP.xlsx"
