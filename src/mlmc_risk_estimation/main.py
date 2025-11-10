@@ -2,7 +2,11 @@
 
 from pathlib import Path
 
-from utils.io_helpers import _read_config, get_portfolio
+from utils.io_helpers import (
+    _read_config,
+    get_portfolio,
+    _import_hist_market_data
+)
 from scenario_generation import generate_mc_scenarios
 
 # Set project root environment variable
@@ -22,7 +26,8 @@ port_data_sheet = path_config["input"]["portfolio_data_worksheet"]
 bm_port_name = param_config["valuation"]["bm_portfolio"]
 portfolio = get_portfolio(port_data_dir, port_data_sheet, bm_port_name)
 
-
+# Get market data from yahoo finance
+market_data = _import_hist_market_data(param_config["valuation"]["tickers"])
 
 # Generate Monte Carlo real-world scenarios
 num_scen = param_config["monte_carlo"]["n"]
