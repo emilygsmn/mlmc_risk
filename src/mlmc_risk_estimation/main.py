@@ -15,6 +15,7 @@ path_config = _read_config(path_config_dir)
 param_config_dir = path_config["input"]["param_config"]
 param_config = _read_config(param_config_dir)
 
+# Get benchmark portfolio data from csv file
 port_data_dir = path_config["input"]["portfolio_data"]
 port_data_sheet = path_config["input"]["portfolio_data_worksheet"]
 bm_port_name = param_config["valuation"]["bm_portfolio"]
