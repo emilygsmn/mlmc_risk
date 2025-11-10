@@ -1,4 +1,3 @@
-
 input: 
   config:
     path: "data/config/path.yaml"
