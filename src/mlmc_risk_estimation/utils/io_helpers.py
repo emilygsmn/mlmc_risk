@@ -10,9 +10,15 @@ def _read_config(file_path):
 
 def _import_portfolio_data(file_path, excel_sheet):
     """Function importing the EIOPA benchmark portfolios."""
-    return pd.read_excel(
+    portfolio_df =  pd.read_excel(
         file_path,
         sheet_name=excel_sheet,
         skiprows=8,
         header=0
     )
+    return portfolio_df.rename(columns={portfolio_df.columns[0]: "fin_position"})
+
+def get_portfolio(file_path, excel_sheet, bmp_name):
+    """Function importing the selected benchmark portfolio data."""
+    portfolio_data = _import_portfolio_data(file_path, excel_sheet)
+    return portfolio_data[["fin_position", bmp_name]]

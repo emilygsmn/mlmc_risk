@@ -1,4 +1,5 @@
 valuation:
+  bm_portfolio: "EUR_BMP_01"
   hist_data_start: "2020-01-01"
   hist_data_end: "2025-11-01"
   tickers:
