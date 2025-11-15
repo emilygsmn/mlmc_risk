@@ -1,4 +1,9 @@
 input: 
   param_config: "data/config/param.yaml"
-  portfolio_data: "data/raw/MCRCS_2024_instruments_and_BMP.xlsx"
-  portfolio_data_worksheet: "BMP_2024"
+  mcrcs_data: "data/raw/MCRCS_2024_instruments_and_BMP.xlsx"
+  portfolio_data:
+    worksheet: "BMP_2024"
+    rows_to_skip: 8
+  instrument_data:
+    worksheet: "Instr_2024_A"
+    rows_to_skip: 6

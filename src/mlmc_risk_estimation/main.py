@@ -5,6 +5,7 @@ from pathlib import Path
 from utils.io_helpers import (
     _read_config,
     get_portfolio,
+    get_instr_info,
     _import_hist_market_data
 )
 from scenario_generation import generate_mc_shocks_pycopula
@@ -24,10 +25,15 @@ param_config_dir = path_config["input"]["param_config"]
 param_config = _read_config(param_config_dir)
 
 # Get benchmark portfolio data from csv file
-port_data_dir = path_config["input"]["portfolio_data"]
-port_data_sheet = path_config["input"]["portfolio_data_worksheet"]
+port_data_dir = path_config["input"]["mcrcs_data"]
+port_data_sheet = path_config["input"]["portfolio_data"]["worksheet"]
+port_skpr = path_config["input"]["portfolio_data"]["rows_to_skip"]
 bm_port_name = param_config["valuation"]["bm_portfolio"]
-portfolio = get_portfolio(port_data_dir, port_data_sheet, bm_port_name)
+portfolio = get_portfolio(port_data_dir, port_data_sheet, port_skpr, bm_port_name)
+
+instr_data_sheet = path_config["input"]["instrument_data"]["worksheet"]
+instr_skpr = path_config["input"]["instrument_data"]["rows_to_skip"]
+instr_info = get_instr_info(port_data_dir, instr_data_sheet, instr_skpr)
 
 # Get market data from yahoo finance
 market_data = _import_hist_market_data(param_config["valuation"]["tickers"])
