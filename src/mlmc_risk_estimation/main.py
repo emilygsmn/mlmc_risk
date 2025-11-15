@@ -7,7 +7,10 @@ from utils.io_helpers import (
     get_portfolio,
     _import_hist_market_data
 )
-from scenario_generation import generate_mc_scenarios
+from scenario_generation import generate_mc_shocks_pycopula
+
+
+### 1. Read the inputs ###
 
 # Set project root environment variable
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -29,6 +32,33 @@ portfolio = get_portfolio(port_data_dir, port_data_sheet, bm_port_name)
 # Get market data from yahoo finance
 market_data = _import_hist_market_data(param_config["valuation"]["tickers"])
 
-# Generate Monte Carlo real-world scenarios
+
+### 2. Calibrate the model ###
+
+# Estimate the calibration parameters from the historical data
+calib_param = params = {
+    "IR": dict(mu=0.02, 
+               sigma=0.01,
+               dt=1,
+               shift=0.025),
+    "FX": dict(mu=0.00, 
+               sigma=0.07,
+               dt=1),
+    "EQ": dict(mu=0.05, 
+               sigma=0.20,
+               dt=1)
+}
+
+### 3. Generate Monte Carlo scenarios ###
+
+# Generate Monte Carlo real-world scenario shocks
 num_scen = param_config["monte_carlo"]["n"]
-mc_scenarios = generate_mc_scenarios(market_data, num_scen)
+stoch_proc_map = param_config["valuation"]["stoch_proc_map"]
+mc_scenarios = generate_mc_shocks_pycopula(market_data, stoch_proc_map, calib_param, num_scen)
+
+
+### 4. Aggregate the profit-and-loss ###
+
+
+
+### 5. Estimate the Value-at-Risk ###

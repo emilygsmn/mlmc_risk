@@ -2,17 +2,15 @@ valuation:
   bm_portfolio: "EUR_BMP_01"
   hist_data_start: "2020-01-01"
   hist_data_end: "2025-11-01"
-  tickers:
-    equity: 
-      - "AAPL"
-      - "AMZN"
-      - "GOOGL"
-      - "MSFT"
-      - "NVDA"
-    fx:
-      - "USDEUR=X"
-      - "JPYEUR=X"
-      - "CHFEUR=X"
-
+  stoch_proc_map:
+    EQ: 
+      "Geom_BM"
+    FX:
+      "Geom_BM"
+    INFL:
+      "BM"
+    IR:
+      "Shift_Geom_BM"
+      
 monte_carlo:
   n: 50000
