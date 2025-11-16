@@ -8,10 +8,12 @@ from utils.io_helpers import (
     get_instr_info,
     _import_hist_market_data
 )
+from utils.preproc_helpers import preproc_portfolio
 from scenario_generation import generate_mc_shocks_pycopula
 
-
+####################################################################################################
 ### 1. Read the inputs ###
+####################################################################################################
 
 # Set project root environment variable
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -31,8 +33,13 @@ instr_info = get_instr_info(path_config["input"])
 # Get market data from yahoo! finance
 market_data = _import_hist_market_data(param_config["valuation"]["tickers"])
 
-
+####################################################################################################
 ### 2. Calibrate the model ###
+####################################################################################################
+
+# Preprocess the benchmark portfolio data
+portfolio, instr_info, calib_target = preproc_portfolio(portfolio,
+                                                        instr_info)
 
 # Estimate the calibration parameters from the historical data
 calib_param = params = {
@@ -48,15 +55,29 @@ calib_param = params = {
                dt=1)
 }
 
+####################################################################################################
+### 3. Price the portfolio instruments ###
+####################################################################################################
 
-### 3. Generate Monte Carlo scenarios ###
+# Compute the prices of the instruments at the reference date (base values)
+
+# Check if the imported/computed base values are close to the calibration targets
+
+####################################################################################################
+### 4. Generate Monte Carlo scenarios ###
+####################################################################################################
 
 # Generate Monte Carlo real-world scenario shocks
 mc_scenarios = generate_mc_shocks_pycopula(param_config, market_data, calib_param)
 
+####################################################################################################
+### 5. Compute scenario losses ###
+####################################################################################################
 
-### 4. Aggregate the profit-and-loss ###
+####################################################################################################
+### 6. Aggregate the profit-and-loss ###
+####################################################################################################
 
-
-
-### 5. Estimate the Value-at-Risk ###
+####################################################################################################
+### 7. Estimate the Value-at-Risk ###
+####################################################################################################
