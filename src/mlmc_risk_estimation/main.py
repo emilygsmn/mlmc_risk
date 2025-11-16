@@ -10,6 +10,7 @@ from utils.io_helpers import (
 )
 from utils.preproc_helpers import preproc_portfolio
 from scenario_generation import generate_mc_shocks_pycopula
+from full_valuation import comp_prices_with_calib_target
 
 ####################################################################################################
 ### 1. Read the inputs ###
@@ -62,6 +63,7 @@ calib_param = params = {
 # Compute the prices of the instruments at the reference date (base values)
 
 # Check if the imported/computed base values are close to the calibration targets
+comp_prices_with_calib_target(base_values, calib_targets)
 
 ####################################################################################################
 ### 4. Generate Monte Carlo scenarios ###
