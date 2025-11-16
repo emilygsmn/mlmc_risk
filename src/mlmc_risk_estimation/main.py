@@ -25,17 +25,10 @@ param_config_dir = path_config["input"]["param_config"]
 param_config = _read_config(param_config_dir)
 
 # Get benchmark portfolio data from csv file
-port_data_dir = path_config["input"]["mcrcs_data"]
-port_data_sheet = path_config["input"]["portfolio_data"]["worksheet"]
-port_skpr = path_config["input"]["portfolio_data"]["rows_to_skip"]
-bm_port_name = param_config["valuation"]["bm_portfolio"]
-portfolio = get_portfolio(port_data_dir, port_data_sheet, port_skpr, bm_port_name)
+portfolio = get_portfolio(path_config["input"], param_config)
+instr_info = get_instr_info(path_config["input"])
 
-instr_data_sheet = path_config["input"]["instrument_data"]["worksheet"]
-instr_skpr = path_config["input"]["instrument_data"]["rows_to_skip"]
-instr_info = get_instr_info(port_data_dir, instr_data_sheet, instr_skpr)
-
-# Get market data from yahoo finance
+# Get market data from yahoo! finance
 market_data = _import_hist_market_data(param_config["valuation"]["tickers"])
 
 
@@ -55,12 +48,11 @@ calib_param = params = {
                dt=1)
 }
 
+
 ### 3. Generate Monte Carlo scenarios ###
 
 # Generate Monte Carlo real-world scenario shocks
-num_scen = param_config["monte_carlo"]["n"]
-stoch_proc_map = param_config["valuation"]["stoch_proc_map"]
-mc_scenarios = generate_mc_shocks_pycopula(market_data, stoch_proc_map, calib_param, num_scen)
+mc_scenarios = generate_mc_shocks_pycopula(param_config, market_data, calib_param)
 
 
 ### 4. Aggregate the profit-and-loss ###

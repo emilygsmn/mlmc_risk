@@ -115,7 +115,7 @@ def _map_to_marginals(samples, marg_distr_map, param):
 
     return mc_shocks
 
-def generate_mc_shocks_pycopula(market_data, marg_distr_map, calib_param, num_scen):
+def generate_mc_shocks_pycopula(param_config, market_data, calib_param):
     """Function generating real-world Monte Carlo scenarios for all risk factors."""
 
     # Get the number of risk factors and their names
@@ -126,12 +126,20 @@ def generate_mc_shocks_pycopula(market_data, marg_distr_map, calib_param, num_sc
     corr_mat = _calc_correlation_mat(market_data)
 
     # Initialize the Gaussian copula
-    copula = _init_gauss_copula(corr_mat, num_rfs)
+    copula = _init_gauss_copula(corr_mat,
+                                num_rfs
+                                )
 
     # Sample from the copula num_scen times
-    corr_unif_samples = _sample_from_copula(copula, rfs, num_scen)
+    corr_unif_samples = _sample_from_copula(copula=copula,
+                                            rfs=rfs,
+                                            num_scen=param_config["monte_carlo"]["n"]
+                                            )
 
     # Use inverse transformation to get correlated samples from N(0,1)
     corr_normal_samples = stats.norm.ppf(corr_unif_samples)
 
-    return _map_to_marginals(corr_normal_samples, marg_distr_map, calib_param)
+    return _map_to_marginals(samples=corr_normal_samples,
+                             marg_distr_map=param_config["valuation"]["stoch_proc_map"],
+                             param=calib_param
+                             )

@@ -24,19 +24,25 @@ def _import_mcrcs_data(file_path, excel_sheet, skip_row):
 
     return portfolio_df.rename(columns={portfolio_df.columns[0]: "fin_position"})
 
-def get_portfolio(file_path, port_xl_sheet, port_skpr, bmp_name):
+def get_portfolio(input_config, param_config):
     """Function importing the selected MCRCS benchmark portfolio data."""
 
     # Import benchmark portfolio data from the csv file
-    portfolio_data = _import_mcrcs_data(file_path, port_xl_sheet, port_skpr)
+    portfolio_data = _import_mcrcs_data(file_path=input_config["mcrcs_data"],
+                                        excel_sheet=input_config["portfolio_data"]["worksheet"],
+                                        skip_row=input_config["portfolio_data"]["rows_to_skip"]
+                                        )
 
-    return portfolio_data[["fin_position", bmp_name]]
+    return portfolio_data[["fin_position", param_config["valuation"]["bm_portfolio"]]]
 
-def get_instr_info(file_path, instr_xl_sheet, instr_skpr):
+def get_instr_info(input_config):
     """Function importing the data on the MCRCS financial instruments."""
 
     # Import financial instrument information from the csv file
-    instrument_data = _import_mcrcs_data(file_path, instr_xl_sheet, instr_skpr)
+    instrument_data = _import_mcrcs_data(file_path=input_config["mcrcs_data"],
+                                         excel_sheet=input_config["instrument_data"]["worksheet"],
+                                         skip_row=input_config["instrument_data"]["rows_to_skip"]
+                                         )
 
     return instrument_data
 
