@@ -46,10 +46,13 @@ def get_instr_info(input_config):
 
     return instrument_data
 
-def _import_hist_market_data(instr_list, start_date, end_date):
+def _get_yf_ticker(ticker_map, instr_list):
+    return [ticker_map.get(k) for k in instr_list if k in ticker_map]
+
+def import_hist_market_data(yf_ticker_map, instr_list, start_date, end_date):
     """Function downloading historical market time series data from Yahoo! Finance."""
 
     # Get a list of all tickers to retrieve time series data for
-    tickers = list(instr_list.keys())
+    tickers = _get_yf_ticker(yf_ticker_map, instr_list)
 
     return yf.download(tickers, start=start_date, end=end_date)["Close"]
