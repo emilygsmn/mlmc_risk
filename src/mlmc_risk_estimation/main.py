@@ -63,14 +63,14 @@ calib_param = params = {
 # Compute the prices of the instruments at the reference date (base values)
 
 # Check if the imported/computed base values are close to the calibration targets
-comp_prices_with_calib_targets(base_values, calib_target)
+#comp_prices_with_calib_targets(base_values, calib_target)
 
 ####################################################################################################
 ### 4. Generate Monte Carlo scenarios ###
 ####################################################################################################
 
 # Generate Monte Carlo real-world scenario shocks
-mc_scenarios = generate_mc_shocks_pycopula(param_config, market_data, calib_param)
+mc_scenarios = generate_mc_shocks_pycopula(market_data, instr_info, param_config, calib_param)
 
 ####################################################################################################
 ### 5. Compute scenario losses ###

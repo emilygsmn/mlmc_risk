@@ -72,7 +72,7 @@ def _calc_shock_with_sgbm(x, mu, sigma, dt, shift):
 
     return (1 + shift) * gbm - shift
 
-def _map_to_marginals(samples, marg_distr_map, param):
+def _map_to_marginals(samples, marg_distr_map, instr_info, param_dict):
     """Function to map the correlated uniform MC samples to their marginal shock distributions."""
 
     shock_functions = {
@@ -84,10 +84,10 @@ def _map_to_marginals(samples, marg_distr_map, param):
     mc_shocks = pd.DataFrame(columns=samples.columns, index=samples.index)
 
     for col in samples.columns:
-        key = col[:2]
-        model_type = marg_distr_map[key]
+        val_tag = instr_info.loc[instr_info["fin_instr"] == col, "val_tag"].iloc[0]
+        model_type = marg_distr_map[val_tag]
         shock_fun = shock_functions[model_type]
-        param = param[key]
+        param = param_dict[val_tag]
 
         # Pick correct call signature
         if model_type == "Shift_Geom_BM":
@@ -104,7 +104,7 @@ def _map_to_marginals(samples, marg_distr_map, param):
 
     return mc_shocks
 
-def generate_mc_shocks_pycopula(param_config, market_data, calib_param):
+def generate_mc_shocks_pycopula(market_data, instr_info, param_config, calib_param):
     """Function generating real-world Monte Carlo scenarios for all risk factors."""
 
     # Get the number of risk factors and their names
@@ -121,5 +121,6 @@ def generate_mc_shocks_pycopula(param_config, market_data, calib_param):
 
     return _map_to_marginals(samples=corr_normal_samples,
                              marg_distr_map=param_config["valuation"]["stoch_proc_map"],
-                             param=calib_param
+                             instr_info=instr_info,
+                             param_dict=calib_param
                              )
