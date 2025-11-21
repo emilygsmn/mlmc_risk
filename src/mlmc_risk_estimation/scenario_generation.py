@@ -30,7 +30,7 @@ def _correlate_scenarios(uncorr_samples, corr_mat, rfs):
 
     return pd.DataFrame(corr_samples, columns=rfs)
 
-def generate_mc_shocks(market_data, marg_distr_map, calib_param, num_scen):
+def generate_mc_shocks(market_data, instr_info, marg_distr_map, calib_param, num_scen):
     """Function generating real-world Monte Carlo scenarios for all the risk factors."""
 
     # Generate num_scen independent (uncorrelated) samples from Unif[0,1] for all RFs
@@ -45,7 +45,7 @@ def generate_mc_shocks(market_data, marg_distr_map, calib_param, num_scen):
     corr_mat = _calc_correlation_mat(market_data)
     corr_normal_samples = _correlate_scenarios(uncorr_normal_samples, corr_mat, rfs)
 
-    return _map_to_marginals(corr_normal_samples, marg_distr_map, calib_param)
+    return _map_to_marginals(corr_normal_samples, marg_distr_map, instr_info, calib_param)
 
 ########## Scenario Generation using NumPy.Random.multivariate_normal() ##########
 
@@ -53,7 +53,10 @@ def _sample_from_copula(corr_mat, rfs, num_scen):
     """Function to generate samples from a given copula."""
 
     # Generate num_scen samples from the copula
-    norm_samples = np.random.multivariate_normal(mean=np.zeros(len(rfs)), cov=corr_mat, size=num_scen)
+    norm_samples = np.random.multivariate_normal(mean=np.zeros(len(rfs)),
+                                                 cov=corr_mat,
+                                                 size=num_scen
+                                                 )
 
     return pd.DataFrame(norm_samples, columns=rfs)
 
