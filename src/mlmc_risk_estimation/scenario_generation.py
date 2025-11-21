@@ -10,7 +10,7 @@ def _calc_correlation_mat(prices):
     """Function calculating the correlation matrix from a time series of prices."""
 
     # Compute the daily returns
-    daily_returns = prices.pct_change().dropna()
+    daily_returns = prices.pct_change(fill_method=None).dropna()
 
     return daily_returns.corr()
 
