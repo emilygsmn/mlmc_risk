@@ -1,6 +1,6 @@
 valuation:
   bm_portfolio: "EUR_BMP_01"
-  val_date: "2025-11-01"
+  val_date: "2025-10-31"
   hist_data_start: "2020-01-01"
   hist_data_end: "2025-11-01"
   stoch_proc_map:
