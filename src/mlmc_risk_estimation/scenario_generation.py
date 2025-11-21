@@ -4,8 +4,6 @@ import numpy as np
 from scipy import stats
 import pandas as pd
 
-from pycopula.copula import GaussianCopula
-
 __all__ = ["generate_mc_shocks", "generate_mc_shocks_pycopula"]
 
 def _calc_correlation_mat(prices):
@@ -49,24 +47,15 @@ def generate_mc_shocks(market_data, marg_distr_map, calib_param, num_scen):
 
     return _map_to_marginals(corr_normal_samples, marg_distr_map, calib_param)
 
-########## Scenario Generation using PyCopula ##########
+########## Scenario Generation using NumPy.Random.multivariate_normal() ##########
 
-def _init_gauss_copula(corr_mat, num_rfs):
-    """Function to initialize a Gaussian copula for a given correlation matrix."""
-
-    # Create Gaussian copula with num_rfs dimensions
-    copula = GaussianCopula(dim=num_rfs)
-    copula.fit_corr(corr_mat)
-
-    return copula
-
-def _sample_from_copula(copula, rfs, num_scen):
+def _sample_from_copula(corr_mat, rfs, num_scen):
     """Function to generate samples from a given copula."""
 
     # Generate num_scen samples from the copula
-    samples = copula.sample(num_scen)
+    norm_samples = np.random.multivariate_normal(mean=np.zeros(len(rfs)), cov=corr_mat, size=num_scen)
 
-    return pd.DataFrame(samples, columns=rfs)
+    return pd.DataFrame(norm_samples, columns=rfs)
 
 def _calc_shock_with_bm(x, mu, sigma, dt):
     """Function calculating the MC scenario shocks for the RFs using Brownian Motion"""
@@ -120,24 +109,15 @@ def generate_mc_shocks_pycopula(param_config, market_data, calib_param):
 
     # Get the number of risk factors and their names
     rfs = list(market_data.columns)
-    num_rfs = len(rfs)
 
     # Calculate the correlation matrix
     corr_mat = _calc_correlation_mat(market_data)
 
-    # Initialize the Gaussian copula
-    copula = _init_gauss_copula(corr_mat,
-                                num_rfs
-                                )
-
     # Sample from the copula num_scen times
-    corr_unif_samples = _sample_from_copula(copula=copula,
-                                            rfs=rfs,
-                                            num_scen=param_config["monte_carlo"]["n"]
-                                            )
-
-    # Use inverse transformation to get correlated samples from N(0,1)
-    corr_normal_samples = stats.norm.ppf(corr_unif_samples)
+    corr_normal_samples = _sample_from_copula(corr_mat=corr_mat,
+                                              rfs=rfs,
+                                              num_scen=param_config["monte_carlo"]["n"]
+                                              )
 
     return _map_to_marginals(samples=corr_normal_samples,
                              marg_distr_map=param_config["valuation"]["stoch_proc_map"],
