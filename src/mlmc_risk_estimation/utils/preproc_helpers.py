@@ -55,7 +55,8 @@ def preproc_portfolio(port, instr_info):
         "GOV-FI-AT-NA-NA-05",
         "GOV-FI-UK-NA-NA-05",
         #"FI-GBP-RFR-NA-NA-NA-NA-01",
-        "Other-EQ-EUR-PUBL-EU-SX5T-NA-NA-NA"#,
+        "Other-EQ-EUR-PUBL-EU-SX5T-NA-NA-NA",
+        "Other-EQ-EUR-PUBL-US-SPTR500N-NA-NA-NA",
         #"FX-GBP-NA-NA-NA-NA-NA-NA",
         #"FX-USD-NA-NA-NA-NA-NA-NA"
     ]

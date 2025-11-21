@@ -4,7 +4,7 @@ import yaml
 import pandas as pd
 import yfinance as yf
 
-def _read_config(file_path):
+def read_config(file_path):
     """Function reading the configuration parameters from a YAML file."""
 
     # Read the configurations from the yaml file
@@ -46,13 +46,31 @@ def get_instr_info(input_config):
 
     return instrument_data
 
-def _get_yf_ticker(ticker_map, instr_list):
-    return [ticker_map.get(k) for k in instr_list if k in ticker_map]
+def _get_yf_ticker(ticker_map, instr_info):
+    return (
+        instr_info["fin_instr"]
+        .map(ticker_map)
+        .dropna()
+        .tolist()
+    )
 
-def import_hist_market_data(yf_ticker_map, instr_list, start_date, end_date):
+def import_hist_market_data(param_config, instr_info):
     """Function downloading historical market time series data from Yahoo! Finance."""
 
     # Get a list of all tickers to retrieve time series data for
-    tickers = _get_yf_ticker(yf_ticker_map, instr_list)
+    ticker_map = param_config["valuation"]["yf_ticker_map"]
+    tickers = _get_yf_ticker(ticker_map=ticker_map,
+                             instr_info=instr_info
+                             )
 
-    return yf.download(tickers, start=start_date, end=end_date)["Close"]
+    # Download data vie the Yahoo! Finance API
+    mkt_data = yf.download(tickers,
+                           start=param_config["valuation"]["hist_data_start"],
+                           end=param_config["valuation"]["hist_data_end"]
+                           )["Close"]
+
+    rev_map = {v: k for k, v in ticker_map.items()}
+
+    mkt_data.rename(columns=rev_map, inplace=True)
+
+    return mkt_data
