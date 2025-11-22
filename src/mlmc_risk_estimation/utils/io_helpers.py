@@ -22,7 +22,14 @@ def _import_mcrcs_data(file_path, excel_sheet, skip_row):
         header=0
     )
 
-    return portfolio_df.rename(columns={portfolio_df.columns[0]: "fin_instr"})
+    portfolio_df = (
+        portfolio_df
+        .loc[:, ~portfolio_df.columns.str.contains("^Unnamed")]
+        .dropna(axis=1, how="all")
+        .rename(columns={portfolio_df.columns[0]: "fin_instr"})
+        )
+
+    return portfolio_df
 
 def get_portfolio(input_config, param_config):
     """Function importing the selected MCRCS benchmark portfolio data."""
