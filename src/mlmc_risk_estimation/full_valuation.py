@@ -49,22 +49,45 @@ def _calc_EQ_price(rfs, mkt_data, shocks, ref_date):
 
     return priced
 
-def _calc_BOND_price(rfs, instr_info, shocks):
+def _calc_BOND_price(instr_info, shocks):
     """Function pricing a zero-coupon bond excl. inflation and credit risk."""
     face_val = instr_info["notional_/_pos_units"]
     rfr = instr_info["rfr"]
     maturity = instr_info["maturity"]
-    return face_val * np.exp(-rfr * maturity)
+    return face_val * np.exp(-(rfr + shocks) * maturity)
+
+def _convert_loc_ccy_to_eur(prices_loc, instr_info):
+    """Function converting prices quoted in local currency to EUR values."""
+    prices_eur = prices_loc.copy()
+
+    for _, row in instr_info.iterrows():
+        instr = row["fin_instr"]
+        ccy = row["ccy"]
+
+        # Skip EUR-denominated instruments
+        if instr.startswith("FX-") or ccy == "EUR":
+            continue
+
+        # Construct FX column name
+        fx_col_candidates = [col for col in prices_loc.columns if col.startswith(f"FX-{ccy}-")]
+        if not fx_col_candidates:
+            raise KeyError(f"No FX column found for currency '{ccy}' required for '{instr}'")
+        fx_col = fx_col_candidates[0]
+
+        # Multiply the instrument prices by the FX column (broadcast across rows)
+        prices_eur[instr] = prices_loc[instr] * prices_loc[fx_col]
+
+    return prices_eur
 
 def calc_prices(mkt_data, params, instr_info, ref_date, shocks=None):
     """Function running the pricing functions for all financial instruments grouped by val_tag."""
 
     # Set the argument specifications
-    ARG_SPEC: Dict[str, Tuple[Any, ...]] = {
+    arg_spec: Dict[str, Tuple[Any, ...]] = {
         "FX": ("rfs", "mkt_data", "shocks", "ref_date"),
         "INFL": ("rfs", "mkt_data", "shocks", "ref_date"),
         "EQ": ("rfs", "mkt_data", "shocks", "ref_date"),
-        "BOND": ("rfs", "rf_rates", "notional", "tenor", "shocks")
+        "BOND": ("rf_rates", "notional", "tenor", "shocks")
         }
 
     # Set shock to zero for base scenario valuation
@@ -100,7 +123,7 @@ def calc_prices(mkt_data, params, instr_info, ref_date, shocks=None):
 
         # Lookup argument order in ARG_SPEC and select only relevant risk factor data
         arg_list = []
-        for arg in ARG_SPEC[val_tag]:
+        for arg in arg_spec[val_tag]:
             if arg == "rfs":
                 arg_list.append(rf_needed)
             elif arg == "shocks":
@@ -118,19 +141,22 @@ def calc_prices(mkt_data, params, instr_info, ref_date, shocks=None):
                 raise ValueError(f"Unknown argument specifier '{arg}'.")
 
         # Call the relevant pricing function
-        priced_df = price_func(*arg_list)
+        prices = price_func(*arg_list)
 
         # priced_df must contain exactly the same columns requested
-        priced_df = priced_df[rf_needed]
+        prices = prices[rf_needed]
 
         # Collect the resulting data frames
-        results.append(priced_df)
+        results.append(prices)
 
     # Combine all valuation outputs into one data frame
     if results:
         final = pd.concat(results, axis=1)
     else:
         final = pd.DataFrame()
+
+    # Convert all local currency prices to EUR
+    final = _convert_loc_ccy_to_eur(final, instr_info)
 
     return final
 
