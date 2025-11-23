@@ -71,10 +71,12 @@ def import_hist_market_data(param_config, instr_info):
                              )
 
     # Download data vie the Yahoo! Finance API
-    mkt_data = yf.download(tickers,
+    mkt_data = (yf.download(tickers,
                            start=param_config["valuation"]["hist_data_start"],
                            end=param_config["valuation"]["hist_data_end"]
                            )["Close"]
+                .bfill()
+                )
 
     rev_map = {v: k for k, v in ticker_map.items()}
 
