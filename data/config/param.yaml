@@ -3,6 +3,34 @@ valuation:
   val_date: "2025-10-31"
   hist_data_start: "2020-01-01"
   hist_data_end: "2025-11-01"
+  calibr_methods:
+    return_type:
+      EQ:
+        "rel"
+      FX:
+        "rel"
+      IF:
+        "abs"
+      IR:
+        "rel"
+    return_length:
+      EQ:
+        "week"
+      FX:
+        "week"
+      IF:
+        "week"
+      IR:
+        "quarter"
+    conv_to_rel:
+      EQ:
+        False
+      FX:
+        False
+      IF:
+        False
+      IR:
+        False
   stoch_proc_map:
     EQ: 
       "Geom_BM"
