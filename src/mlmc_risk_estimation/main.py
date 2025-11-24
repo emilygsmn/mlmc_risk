@@ -10,105 +10,110 @@ from utils.io_helpers import (
     import_hist_market_data
 )
 from utils.preproc_helpers import preproc_portfolio
+from stochproc_calibration import calibrate_models
 from scenario_generation import generate_mc_shocks_pycopula
 from full_valuation import calc_prices, comp_prices_with_calib_targets
 
-####################################################################################################
-### 1. Read the inputs ###
-####################################################################################################
+def main():
 
-# Set project root environment variable
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
+    ################################################################################################
+    ### 1. Read the inputs ###
+    ################################################################################################
 
-# Get input and output paths from path.yaml config file
-path_config_dir = PROJECT_ROOT / "data/config/path.yaml"
-path_config = read_config(path_config_dir)
+    # Set project root environment variable
+    PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
-# Get parameter configs from yaml file
-param_config_dir = path_config["input"]["param_config"]
-param_config = read_config(param_config_dir)
+    # Get input and output paths from path.yaml config file
+    path_config_dir = PROJECT_ROOT / "data/config/path.yaml"
+    path_config = read_config(path_config_dir)
 
-# Get benchmark portfolio data from csv file
-portfolio = get_portfolio(path_config["input"], param_config)
-instr_info = get_instr_info(path_config["input"])
+    # Get parameter configs from yaml file
+    param_config_dir = path_config["input"]["param_config"]
+    param_config = read_config(param_config_dir)
 
-# Preprocess the benchmark portfolio data
-portfolio, instr_info, calib_target = preproc_portfolio(portfolio,
-                                                        instr_info)
+    # Get benchmark portfolio data from csv file
+    portfolio = get_portfolio(path_config["input"], param_config)
+    instr_info = get_instr_info(path_config["input"])
 
-# Get market data from yahoo! finance
-market_data = import_hist_market_data(param_config, instr_info)
+    # Preprocess the benchmark portfolio data
+    portfolio, instr_info, calib_target = preproc_portfolio(portfolio,
+                                                            instr_info)
 
-####################################################################################################
-### 2. Calibrate the model ###
-####################################################################################################
+    # Get market data from yahoo! finance
+    market_data = import_hist_market_data(param_config, instr_info)
 
+    ################################################################################################
+    ### 2. Calibrate the model ###
+    ################################################################################################
 
-calib_param = {
-    "FX": dict(mu=0.00, sigma=0.07, dt=1),
-    "Other-EQ-EUR-PUBL-EU-SX5T-NA-NA-NA": dict(mu=0.02, sigma=0.01, dt=1, shift=0.025),
-    "Other-EQ-EUR-PUBL-US-SPTR500N-NA-NA-NA": dict(mu=0.05, sigma=0.02, dt=1, shift=0.025),
-    "EQ": dict(mu=0.05, sigma=0.20, dt=1)
-}
-# Convert to DataFrame
-calib_param = pd.DataFrame.from_dict(calib_param, orient="columns")
+    calib_param = {
+        "FX": dict(mu=0.00, sigma=0.07, dt=1),
+        "Other-EQ-EUR-PUBL-EU-SX5T-NA-NA-NA": dict(mu=0.02, sigma=0.01, dt=1, shift=0.025),
+        "Other-EQ-EUR-PUBL-US-SPTR500N-NA-NA-NA": dict(mu=0.05, sigma=0.02, dt=1, shift=0.025),
+        "EQ": dict(mu=0.05, sigma=0.20, dt=1)
+    }
+    # Convert to DataFrame
+    calib_param = pd.DataFrame.from_dict(calib_param, orient="columns")
 
-####################################################################################################
-### 3. Price the portfolio instruments ###
-####################################################################################################
+    ################################################################################################
+    ### 3. Price the portfolio instruments ###
+    ################################################################################################
 
-# Compute the prices of the instruments at the reference date (base values)
-val_date = param_config["valuation"]["val_date"]
-base_values = calc_prices(mkt_data=market_data,
-                          params=calib_param,
-                          instr_info=instr_info,
-                          ref_date=val_date,
-                          shocks=None
-                          )
-print("Base values:")
-print(base_values)
+    # Compute the prices of the instruments at the reference date (base values)
+    val_date = param_config["valuation"]["val_date"]
+    base_values = calc_prices(mkt_data=market_data,
+                            instr_info=instr_info,
+                            ref_date=val_date,
+                            shocks=None
+                            )
+    print("Base values:")
+    print(base_values)
 
-# Check if the imported/computed base values are close to the calibration targets
-#comp_prices_with_calib_targets(base_values, calib_target)
+    # Check if the imported/computed base values are close to the calibration targets
+    #comp_prices_with_calib_targets(base_values, calib_target)
 
-####################################################################################################
-### 4. Generate Monte Carlo scenarios ###
-####################################################################################################
+    ################################################################################################
+    ### 4. Generate Monte Carlo scenarios ###
+    ################################################################################################
 
-# Estimate the calibration parameters from the historical data
-calib_param = {
-    "IR": dict(mu=0.02, 
-               sigma=0.01,
-               dt=1,
-               shift=0.025),
-    "FX": dict(mu=0.00, 
-               sigma=0.07,
-               dt=1),
-    "EQ": dict(mu=0.05, 
-               sigma=0.20,
-               dt=1)
-}
+    calib_param = calibrate_models(market_data, instr_info, param_config)
 
-# Generate Monte Carlo real-world scenario shocks
-mc_scenarios = generate_mc_shocks_pycopula(market_data, instr_info, param_config, calib_param)
+    # Estimate the calibration parameters from the historical data
+    calib_param = {
+        "IR": dict(mu=0.02, 
+                sigma=0.01,
+                dt=1,
+                shift=0.025),
+        "FX": dict(mu=0.00, 
+                sigma=0.07,
+                dt=1),
+        "EQ": dict(mu=0.05, 
+                sigma=0.20,
+                dt=1)
+    }
 
-shocked_values = calc_prices(mkt_data=market_data,
-                          params=calib_param,
-                          instr_info=instr_info,
-                          ref_date=val_date,
-                          shocks=mc_scenarios
-                          )
-print("Shocked values:")
-print(shocked_values)
+    # Generate Monte Carlo real-world scenario shocks
+    mc_scenarios = generate_mc_shocks_pycopula(market_data, instr_info, param_config, calib_param)
 
-####################################################################################################
-### 5. Compute scenario losses ###
-####################################################################################################
+    shocked_values = calc_prices(mkt_data=market_data,
+                            instr_info=instr_info,
+                            ref_date=val_date,
+                            shocks=mc_scenarios
+                            )
+    print("Shocked values:")
+    print(shocked_values)
 
-####################################################################################################
-### 6. Aggregate the profit-and-loss ###
-####################################################################################################
+    ################################################################################################
+    ### 5. Compute scenario losses ###
+    ################################################################################################
 
-####################################################################################################
-### 7. Estimate the Value-at-Risk ###
-####################################################################################################
+    ################################################################################################
+    ### 6. Aggregate the profit-and-loss ###
+    ################################################################################################
+
+    ################################################################################################
+    ### 7. Estimate the Value-at-Risk ###
+    ################################################################################################
+
+if __name__ == "__main__":
+    main()
