@@ -7,3 +7,4 @@ input:
   instrument_data:
     worksheet: "Instr_2024_A"
     rows_to_skip: 6
+  ecb_rfr_data: "data/raw/ecb_rfr"

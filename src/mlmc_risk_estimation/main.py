@@ -7,7 +7,8 @@ from utils.io_helpers import (
     read_config,
     get_portfolio,
     get_instr_info,
-    import_hist_market_data
+    import_hist_market_data,
+    import_riskfree_rates_from_file
 )
 from utils.preproc_helpers import preproc_portfolio
 from stochproc_calibration import calibrate_models
@@ -41,6 +42,10 @@ def main():
 
     # Get market data from yahoo! finance
     market_data = import_hist_market_data(param_config, instr_info)
+
+    # Get risk-free spot rate yield curves from files
+    rfr_data = import_riskfree_rates_from_file(path_config["input"], instr_info)
+
 
     ################################################################################################
     ### 2. Calibrate the model ###

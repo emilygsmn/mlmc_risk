@@ -83,3 +83,45 @@ def import_hist_market_data(param_config, instr_info):
     mkt_data.rename(columns=rev_map, inplace=True)
 
     return mkt_data
+
+def import_riskfree_rates_from_file(input_config, instr_info):
+    """Function importing the ECB risk-free rates from csv files."""
+
+    # Get the base file path
+    base = input_config["ecb_rfr_data"]
+
+    # Select the maturities needed for EUR government bonds
+    maturities = (
+      instr_info
+      .loc[instr_info["sector_level_1"] == "GOV", "maturity"]
+      .astype(int)
+      .unique()
+      .tolist()
+    )
+    mats = [f"{int(m):02d}" for m in maturities]
+
+    # Initialize the data frame to collect the time series in
+    rfr_df = None
+
+    # Loop over all relevant maturities
+    for m in mats:
+        # Create complete file path
+        file = base + f"_{m}y.csv"
+
+        # Read the time series from the csv
+        tmp_df = pd.read_csv(file, header=0, usecols=[0, 2])
+        tmp_df.columns = ["date", m]
+        tmp_df["date"] = pd.to_datetime(tmp_df["date"])
+        tmp_df = tmp_df.set_index("date").sort_index()
+
+        # Only add the new data to the df if the dates match
+        if rfr_df is None:
+            rfr_df = tmp_df
+        else:
+            # Ensure that the dates match
+            if not rfr_df.index.equals(tmp_df.index):
+                raise ValueError(f"Date mismatch in file {file}")
+            rfr_df[m] = tmp_df[m]
+
+    print(rfr_df)
+    return rfr_df
