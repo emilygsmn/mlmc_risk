@@ -84,7 +84,7 @@ def preproc_portfolio(port, instr_info):
     return port, instr_info, calib_target
 
 def merge_ecb_with_yf(df_ecb: pd.DataFrame, df_yf: pd.DataFrame) -> pd.DataFrame:
-    """Function merging historical data from ECB and Yahoo! Finance using only their common dates."""
+    """Function merging historical data from ECB and Yahoo! Finance (only for common dates)."""
 
     # Ensure both DataFrames have DatetimeIndex
     def ensure_dt_index(df: pd.DataFrame) -> pd.DataFrame:
