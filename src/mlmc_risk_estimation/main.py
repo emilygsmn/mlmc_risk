@@ -115,7 +115,8 @@ def main():
     ### 5. Compute scenario profits-and-losses ###
     ################################################################################################
 
-    instr_scenario_pnls = calc_instr_pnls(base_values, shocked_values)
+    instr_scenario_pnls = calc_instr_pnls(prices_at_t1=base_values,
+                                          prices_at_t2=shocked_values)
     print("Instrument scenario profit-and-losses:")
     print(instr_scenario_pnls)
 

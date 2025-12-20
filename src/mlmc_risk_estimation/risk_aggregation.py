@@ -9,14 +9,17 @@ def calc_instr_pnls(prices_at_t1: pd.DataFrame,
                     ) -> pd.DataFrame:
     """Function calculating the scenario profit-and-loss per instrument."""
 
+    # Ensure the two DataFrames have the same shape
     if prices_at_t1.shape != prices_at_t2.shape:
         raise ValueError(
             f"Shape mismatch: df1.shape={prices_at_t1.shape}, df2.shape={prices_at_t2.shape}"
         )
 
+    # Ensure the two DataFrames contain the same columns
     if not prices_at_t1.columns.equals(prices_at_t2.columns):
         raise ValueError("Column mismatch between DataFrames")
 
+    # Ensure the two DataFrames contain the same row indices
     if not prices_at_t1.index.equals(prices_at_t2.index):
         raise ValueError("Index mismatch between DataFrames")
 
