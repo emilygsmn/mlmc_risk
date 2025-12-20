@@ -73,13 +73,13 @@ def main():
 
     # Compute the prices of the instruments at the reference date (base values)
     val_date = param_config["valuation"]["val_date"]
-    #base_values = calc_prices(mkt_data=hist_data,
-    #                        instr_info=instr_info,
-    #                        ref_date=val_date,
-    #                        shocks=None
-    #                        )
-    #print("Base values:")
-    #print(base_values)
+    base_values = calc_prices(mkt_data=hist_data,
+                            instr_info=instr_info,
+                            ref_date=val_date,
+                            shocks=None
+                            )
+    print("Base values:")
+    print(base_values)
 
     # Check if the imported/computed base values are close to the calibration targets
     #comp_prices_with_calib_targets(base_values, calib_target)
@@ -115,21 +115,11 @@ def main():
     print("Shocked values:")
     print(shocked_values)
 
-    mc_scenarios2 = generate_mc_shocks_pycopula(hist_data, instr_info, param_config, calib_param)
-
-    shocked_values2 = calc_prices(mkt_data=hist_data,
-                            instr_info=instr_info,
-                            ref_date=val_date,
-                            shocks=mc_scenarios2
-                            )
-    print("Shocked values 2:")
-    print(shocked_values2)
-
     ################################################################################################
     ### 5. Compute scenario profits-and-losses ###
     ################################################################################################
 
-    instr_scenario_pnls = calc_instr_pnls(prices_at_t1=shocked_values2,
+    instr_scenario_pnls = calc_instr_pnls(prices_at_t1=base_values,
                                           prices_at_t2=shocked_values)
     print("Instrument scenario profit-and-losses:")
     print(instr_scenario_pnls)
