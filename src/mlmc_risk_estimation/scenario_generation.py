@@ -11,8 +11,26 @@ def _calc_correlation_mat(prices):
 
     # Compute the daily returns
     daily_returns = prices.pct_change(fill_method=None).dropna()
+    is_spd = _check_corr_matrix_is_spd(daily_returns.values)
 
-    return daily_returns.corr()
+    if is_spd:
+        return daily_returns.corr()
+    else:
+        return _add_jitter(daily_returns.corr())
+
+def _check_corr_matrix_is_spd(returns):
+    try:
+        np.linalg.cholesky(returns)
+        print("Matrix is SPD.")
+        return True
+    except np.linalg.LinAlgError:
+        print("Matrix is NOT SPD.")
+        return False
+
+def _add_jitter(mat, eps=1e-8):
+    mat = np.array(mat, dtype=float).copy()
+    mat += np.eye(mat.shape[0]) * eps
+    return mat
 
 def _calc_cholesky_mat(mat):
     """Function calculating the cholesky decomposition for a given matrix."""
@@ -87,7 +105,10 @@ def _map_to_marginals(samples, marg_distr_map, instr_info, param_dict):
     mc_shocks = pd.DataFrame(columns=samples.columns, index=samples.index)
 
     for col in samples.columns:
-        val_tag = instr_info.loc[instr_info["fin_instr"] == col, "val_tag"].iloc[0]
+        if col.startswith("IR"):
+            val_tag = "IR"
+        else:
+            val_tag = instr_info.loc[instr_info["fin_instr"] == col, "val_tag"].iloc[0]
         model_type = marg_distr_map[val_tag]
         shock_fun = shock_functions[model_type]
         param = param_dict[val_tag]
