@@ -17,6 +17,9 @@ from scenario_generation import generate_mc_shocks_pycopula
 from full_valuation import calc_prices, comp_prices_with_calib_targets
 
 def main():
+    """Function estimating the Value-at-Risk of a given financial portfolio
+       using a copula and Monte Carlo simulation.
+    """
 
     ################################################################################################
     ### 1. Read the inputs ###
