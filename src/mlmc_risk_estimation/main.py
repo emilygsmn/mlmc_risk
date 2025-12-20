@@ -15,6 +15,7 @@ from utils.preproc_helpers import (
 from stochproc_calibration import calibrate_models
 from scenario_generation import generate_mc_shocks_pycopula
 from full_valuation import calc_prices, comp_prices_with_calib_targets
+from risk_aggregation import calc_instr_pnls
 
 def main():
     """Function estimating the Value-at-Risk of a given financial portfolio
@@ -111,8 +112,12 @@ def main():
     print(shocked_values)
 
     ################################################################################################
-    ### 5. Compute scenario losses ###
+    ### 5. Compute scenario profits-and-losses ###
     ################################################################################################
+
+    instr_scenario_pnls = calc_instr_pnls(base_values, shocked_values)
+    print("Instrument scenario profit-and-losses:")
+    print(instr_scenario_pnls)
 
     ################################################################################################
     ### 6. Aggregate the profit-and-loss ###
