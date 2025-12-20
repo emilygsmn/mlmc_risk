@@ -15,7 +15,11 @@ from utils.preproc_helpers import (
 from stochproc_calibration import calibrate_models
 from scenario_generation import generate_mc_shocks_pycopula
 from full_valuation import calc_prices, comp_prices_with_calib_targets
-from risk_aggregation import calc_instr_pnls, calc_portfolio_pnl
+from risk_aggregation import (
+    calc_instr_pnls,
+    calc_portfolio_pnl,
+    calc_standard_mc_hd_var
+)
 
 def main():
     """Function estimating the Value-at-Risk of a given financial portfolio
@@ -69,13 +73,13 @@ def main():
 
     # Compute the prices of the instruments at the reference date (base values)
     val_date = param_config["valuation"]["val_date"]
-    base_values = calc_prices(mkt_data=hist_data,
-                            instr_info=instr_info,
-                            ref_date=val_date,
-                            shocks=None
-                            )
-    print("Base values:")
-    print(base_values)
+    #base_values = calc_prices(mkt_data=hist_data,
+    #                        instr_info=instr_info,
+    #                        ref_date=val_date,
+    #                        shocks=None
+    #                        )
+    #print("Base values:")
+    #print(base_values)
 
     # Check if the imported/computed base values are close to the calibration targets
     #comp_prices_with_calib_targets(base_values, calib_target)
@@ -111,11 +115,21 @@ def main():
     print("Shocked values:")
     print(shocked_values)
 
+    mc_scenarios2 = generate_mc_shocks_pycopula(hist_data, instr_info, param_config, calib_param)
+
+    shocked_values2 = calc_prices(mkt_data=hist_data,
+                            instr_info=instr_info,
+                            ref_date=val_date,
+                            shocks=mc_scenarios2
+                            )
+    print("Shocked values 2:")
+    print(shocked_values2)
+
     ################################################################################################
     ### 5. Compute scenario profits-and-losses ###
     ################################################################################################
 
-    instr_scenario_pnls = calc_instr_pnls(prices_at_t1=base_values,
+    instr_scenario_pnls = calc_instr_pnls(prices_at_t1=shocked_values2,
                                           prices_at_t2=shocked_values)
     print("Instrument scenario profit-and-losses:")
     print(instr_scenario_pnls)
@@ -131,6 +145,11 @@ def main():
     ################################################################################################
     ### 7. Estimate the Value-at-Risk ###
     ################################################################################################
+
+    hd_var = calc_standard_mc_hd_var(vals_df=total_scenario_pnl,
+                                     conf_lvl=0.995)
+    print("Standard Monte Carlo Harrell-Davis Value-at-Risk:")
+    print(hd_var)
 
 if __name__ == "__main__":
     main()
