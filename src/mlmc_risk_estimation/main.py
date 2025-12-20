@@ -6,11 +6,12 @@ import pandas as pd
 from utils.io_helpers import (
     read_config,
     get_portfolio,
-    get_instr_info,
-    import_hist_market_data,
-    import_riskfree_rates_from_file
+    get_instr_info
 )
-from utils.preproc_helpers import preproc_portfolio
+from utils.preproc_helpers import (
+    preproc_portfolio,
+    get_historical_data
+)
 from stochproc_calibration import calibrate_models
 from scenario_generation import generate_mc_shocks_pycopula
 from full_valuation import calc_prices, comp_prices_with_calib_targets
@@ -40,12 +41,10 @@ def main():
     portfolio, instr_info, calib_target = preproc_portfolio(portfolio,
                                                             instr_info)
 
-    # Get market data from yahoo! finance
-    market_data = import_hist_market_data(param_config, instr_info)
-
-    # Get risk-free spot rate yield curves from files
-    rfr_data = import_riskfree_rates_from_file(path_config["input"], instr_info)
-
+    # Get historical data
+    hist_data = get_historical_data(path_config, param_config, instr_info)
+    print("historical data:")
+    print(hist_data)
 
     ################################################################################################
     ### 2. Calibrate the model ###
@@ -66,7 +65,7 @@ def main():
 
     # Compute the prices of the instruments at the reference date (base values)
     val_date = param_config["valuation"]["val_date"]
-    base_values = calc_prices(mkt_data=market_data,
+    base_values = calc_prices(mkt_data=hist_data,
                             instr_info=instr_info,
                             ref_date=val_date,
                             shocks=None
@@ -81,7 +80,7 @@ def main():
     ### 4. Generate Monte Carlo scenarios ###
     ################################################################################################
 
-    calib_param = calibrate_models(market_data, instr_info, param_config)
+    calib_param = calibrate_models(hist_data, instr_info, param_config)
 
     # Estimate the calibration parameters from the historical data
     calib_param = {
@@ -98,9 +97,9 @@ def main():
     }
 
     # Generate Monte Carlo real-world scenario shocks
-    mc_scenarios = generate_mc_shocks_pycopula(market_data, instr_info, param_config, calib_param)
+    mc_scenarios = generate_mc_shocks_pycopula(hist_data, instr_info, param_config, calib_param)
 
-    shocked_values = calc_prices(mkt_data=market_data,
+    shocked_values = calc_prices(mkt_data=hist_data,
                             instr_info=instr_info,
                             ref_date=val_date,
                             shocks=mc_scenarios
