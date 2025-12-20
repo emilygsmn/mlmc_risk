@@ -49,18 +49,30 @@ def _calc_EQ_price(rfs, mkt_data, shocks, ref_date):
 
     return priced
 
-def _calc_BOND_price(instr_info, shocks):
+def _calc_BOND_price(
+    face_vals: pd.Series,
+    riskfree_rates: pd.Series,
+    maturities: pd.Series,
+    shocks: pd.DataFrame,
+    ) -> pd.DataFrame:
     """Function pricing a zero-coupon bond excl. inflation and credit risk."""
-    face_val = instr_info["notional_/_pos_units"]
-    rfr = instr_info["rfr"]
-    maturity = instr_info["maturity"]
-    return face_val * np.exp(-(rfr + shocks) * maturity)
+
+    shocked_rfr = shocks.add(riskfree_rates, axis=1)
+    exponent = - shocked_rfr.multiply(maturities, axis=1)
+    disc_fact = np.exp(exponent)
+    prices = disc_fact.multiply(face_vals, axis=1)
+
+    return prices
 
 def _convert_loc_ccy_to_eur(prices_loc, instr_info):
     """Function converting prices quoted in local currency to EUR values."""
+
+    # Create copy of DataFrame for out-of-place modification
     prices_eur = prices_loc.copy()
 
     for _, row in instr_info.iterrows():
+
+        # Select current instrument and currency
         instr = row["fin_instr"]
         ccy = row["ccy"]
 
@@ -79,7 +91,34 @@ def _convert_loc_ccy_to_eur(prices_loc, instr_info):
 
     return prices_eur
 
-def calc_prices(mkt_data, params, instr_info, ref_date, shocks=None):
+def build_rf_shock_df(rf_needed, instr_indexed, shocks,
+                      mat_col='maturity', shocks_prefix='IR_EUR_'):
+    """Builds a DataFrame with one column per element in rf_needed."""
+
+    cols = {}
+    for rf in rf_needed:
+        # Ensure rf exists in instr_indexed index
+        if rf not in instr_indexed.index:
+            raise KeyError(f"Risk factor '{rf}' not found in instr_indexed.index")
+        mat = instr_indexed.at[rf, mat_col]
+
+        # Format maturity to 2-digit string if numeric-like
+        try:
+            mat_str = f"{int(mat):02d}"
+        except Exception:
+            mat_str = str(mat)
+
+        shocks_col = f"{shocks_prefix}{mat_str}"
+        if shocks_col not in shocks.columns:
+            raise KeyError(f"Column '{shocks_col}' not found in shocks")
+
+        # Take the series from shocks (alignment by index will happen automatically)
+        cols[rf] = shocks[shocks_col]
+
+    # Build DataFrame from dict of Series (preserves shocks index / aligns indexes)
+    return pd.DataFrame(cols)
+
+def calc_prices(mkt_data, instr_info, ref_date, shocks=None):
     """Function running the pricing functions for all financial instruments grouped by val_tag."""
 
     # Set the argument specifications
@@ -87,7 +126,7 @@ def calc_prices(mkt_data, params, instr_info, ref_date, shocks=None):
         "FX": ("rfs", "mkt_data", "shocks", "ref_date"),
         "INFL": ("rfs", "mkt_data", "shocks", "ref_date"),
         "EQ": ("rfs", "mkt_data", "shocks", "ref_date"),
-        "BOND": ("rf_rates", "notional", "tenor", "shocks")
+        "BOND": ("riskfree_rates", "face_vals", "maturities", "shocks")
         }
 
     # Set shock to zero for base scenario valuation
@@ -115,6 +154,8 @@ def calc_prices(mkt_data, params, instr_info, ref_date, shocks=None):
         rf_needed = instruments
 
         # Load the correct pricing function by naming convention
+        if val_tag == "IR":
+            val_tag = "BOND"
         func_name = f"_calc_{val_tag}_price"
         try:
             price_func = globals()[func_name]
@@ -122,19 +163,30 @@ def calc_prices(mkt_data, params, instr_info, ref_date, shocks=None):
             raise RuntimeError(f"Pricing function '{func_name}' not found.")
 
         # Lookup argument order in ARG_SPEC and select only relevant risk factor data
+        instr_indexed = instr_info.set_index("fin_instr", drop=False)
         arg_list = []
         for arg in arg_spec[val_tag]:
             if arg == "rfs":
                 arg_list.append(rf_needed)
-            elif arg == "shocks":
-                shocks_sub = shocks[rf_needed]
-                arg_list.append(shocks_sub)
             elif arg == "mkt_data":
                 mkt_sub    = mkt_data[rf_needed]
                 arg_list.append(mkt_sub)
-            elif arg == "params":
-                params_sub = params[rf_needed]
-                arg_list.append(params_sub)
+            elif arg == "riskfree_rates":
+                rfr_sub = instr_indexed.loc[rf_needed, "rfr"]
+                arg_list.append(rfr_sub.astype(float))
+            elif arg == "face_vals":
+                face_vals = instr_indexed.loc[rf_needed, "notional_/_pos_units"]
+                arg_list.append(face_vals.astype(float))
+            elif arg == "maturities":
+                maturities = instr_indexed.loc[rf_needed, "maturity"]
+                arg_list.append(maturities.astype(float))
+            elif arg == "shocks":
+                if val_tag == "BOND":
+                    shocks_sub = build_rf_shock_df(rf_needed, instr_indexed, shocks,
+                      mat_col='maturity', shocks_prefix='IR_EUR_')
+                else: 
+                    shocks_sub = shocks[rf_needed]
+                arg_list.append(shocks_sub)
             elif arg == "ref_date":
                 arg_list.append(ref_date)
             else:

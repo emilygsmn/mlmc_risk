@@ -110,7 +110,7 @@ def import_riskfree_rates_from_file(input_config, instr_info):
 
         # Read the time series from the csv
         tmp_df = pd.read_csv(file, header=0, usecols=[0, 2])
-        tmp_df.columns = ["date", m]
+        tmp_df.columns = ["date", f"IR_EUR_{m}"]
         tmp_df["date"] = pd.to_datetime(tmp_df["date"])
         tmp_df = tmp_df.set_index("date").sort_index()
 
@@ -121,7 +121,6 @@ def import_riskfree_rates_from_file(input_config, instr_info):
             # Ensure that the dates match
             if not rfr_df.index.equals(tmp_df.index):
                 raise ValueError(f"Date mismatch in file {file}")
-            rfr_df[m] = tmp_df[m]
+            rfr_df[f"IR_EUR_{m}"] = tmp_df[f"IR_EUR_{m}"]
 
-    print(rfr_df)
     return rfr_df

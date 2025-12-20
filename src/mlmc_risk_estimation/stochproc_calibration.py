@@ -96,7 +96,11 @@ def calibrate_models(mkt_data, instr_info, param_config):
     volas = pd.DataFrame(index=["sigma"], columns=rfs)
 
     for rf in rfs:
-        risk_type = instr_indexed.loc[rf, "val_tag"]
+        print(rf)
+        if rf.startswith("IR"):
+            risk_type = "IR"
+        else:
+            risk_type = instr_indexed.loc[rf, "val_tag"]
         volas.loc["sigma", rf] = _get_empirical_vola(
             time_series=np.array(mkt_data[rf]),
             ret_type=calib_methods["return_type"][risk_type],
