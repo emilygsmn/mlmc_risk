@@ -3,15 +3,8 @@
 from pathlib import Path
 import pandas as pd
 
-from utils.io_helpers import (
-    read_config,
-    get_portfolio,
-    get_instr_info
-)
-from utils.preproc_helpers import (
-    preproc_portfolio,
-    get_historical_data
-)
+from utils.io_helpers import read_config, get_portfolio, get_instr_info
+from utils.preproc_helpers import preproc_portfolio, get_historical_data
 from stochproc_calibration import calibrate_models
 from scenario_generation import generate_mc_shocks_pycopula
 from full_valuation import calc_prices, comp_prices_with_calib_targets
@@ -46,8 +39,8 @@ def main():
     instr_info = get_instr_info(path_config["input"])
 
     # Preprocess the benchmark portfolio data
-    portfolio, instr_info, calib_target = preproc_portfolio(portfolio,
-                                                            instr_info)
+    portfolio, instr_info, calib_target = preproc_portfolio(port=portfolio,
+                                                            instr_info=instr_info)
 
     # Get historical data
     hist_data = get_historical_data(path_config, param_config, instr_info)
@@ -74,10 +67,10 @@ def main():
     # Compute the prices of the instruments at the reference date (base values)
     val_date = param_config["valuation"]["val_date"]
     base_values = calc_prices(mkt_data=hist_data,
-                            instr_info=instr_info,
-                            ref_date=val_date,
-                            shocks=None
-                            )
+                              instr_info=instr_info,
+                              ref_date=val_date,
+                              shocks=None
+                              )
     print("Base values:")
     print(base_values)
 
