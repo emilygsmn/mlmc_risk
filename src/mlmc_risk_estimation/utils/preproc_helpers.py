@@ -2,12 +2,9 @@
 
 import pandas as pd
 
-from utils.io_helpers import (
-    import_hist_market_data,
-    import_riskfree_rates_from_file
-)
+from utils.io_helpers import import_hist_market_data, import_riskfree_rates_from_file
 
-__all__ = ["preproc_portfolio"]
+__all__ = ["preproc_portfolio", "get_historical_data"]
 
 def _select_port_instr(port, instr_info):
     """Function selecting the relevant portfolio positions."""
@@ -36,9 +33,9 @@ def _add_valuation_tag(instr_info):
             return "EQ"
         if "FI" in name:
             if name.startswith("GOV-FI-"):
-                return "IR"
+                return "BOND"
             if name == "FI-GBP-RFR-NA-NA-NA-NA-01" or name == "GOV-FI-UK-NA-NA-05":
-                return "IR_FX"
+                return "BOND_FX"
         else:
             return "unknown"
 
@@ -121,7 +118,6 @@ def merge_ecb_with_yf(df_ecb: pd.DataFrame, df_yf: pd.DataFrame) -> pd.DataFrame
     merged = merged.sort_index()
 
     return merged
-
 
 def get_historical_data(path_config, param_config, instr_info):
     """Function importing all relevant historical data from different sources and merging them."""
