@@ -96,7 +96,6 @@ def calibrate_models(mkt_data, instr_info, param_config):
     volas = pd.DataFrame(index=["sigma"], columns=rfs)
 
     for rf in rfs:
-        print(rf)
         if rf.startswith("IR"):
             risk_type = "IR"
         else:
