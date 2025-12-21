@@ -4,6 +4,13 @@ import yaml
 import pandas as pd
 import yfinance as yf
 
+__all__ = ["read_config",
+           "get_portfolio",
+           "get_instr_info",
+           "import_hist_market_data",
+           "import_riskfree_rates_from_file"
+           ]
+
 def read_config(file_path):
     """Function reading the configuration parameters from a YAML file."""
 
