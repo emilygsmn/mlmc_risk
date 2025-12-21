@@ -12,6 +12,7 @@ cd mlmc_risk_estimation
 python -m venv venv
 source venv/bin/activate  # Windows: .\venv\Scripts\activate
 pip install -r requirements.txt
+```
 
 ## Portfolio, Data & Inputs
 
