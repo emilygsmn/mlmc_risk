@@ -11,21 +11,16 @@ def calc_instr_pnls(prices_at_t1: pd.DataFrame,
                     ) -> pd.DataFrame:
     """Function calculating the scenario profit-and-loss per instrument."""
 
-    # Ensure the two DataFrames have the same shape
-    if prices_at_t1.shape != prices_at_t2.shape:
-        raise ValueError(
-            f"Shape mismatch: df1.shape={prices_at_t1.shape}, df2.shape={prices_at_t2.shape}"
-        )
+    # Ensure prices_at_t1 has exactly one row
+    if prices_at_t1.shape[0] != 1:
+        raise ValueError(f"prices_at_t1 must have exactly one row, got {prices_at_t1.shape[0]}")
 
     # Ensure the two DataFrames contain the same columns
     if not prices_at_t1.columns.equals(prices_at_t2.columns):
-        raise ValueError("Column mismatch between DataFrames")
+        raise ValueError("Column mismatch between prices_at_t1 and prices_at_t2")
 
-    # Ensure the two DataFrames contain the same row indices
-    if not prices_at_t1.index.equals(prices_at_t2.index):
-        raise ValueError("Index mismatch between DataFrames")
-
-    return prices_at_t2.subtract(prices_at_t1)
+    # Subtract the single row of prices_at_t1 from all rows in prices_at_t2
+    return prices_at_t2.subtract(prices_at_t1.iloc[0])
 
 def calc_portfolio_pnl(instr_pnls: pd.DataFrame
                        ) -> pd.DataFrame:
