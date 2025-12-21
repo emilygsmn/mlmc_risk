@@ -1,29 +1,44 @@
 """"Module providing functions for full valuation of the risk factors."""
 
 import sys
-from typing import Any, Dict, Tuple
+from typing import Any, Callable, Dict, Tuple
 
 import numpy as np
 import pandas as pd
 
 __all__ = ["comp_prices_with_calib_targets"]
 
-def _get_pricing_func(tag: str):
-    """ Function returning the pricing function object for a given tag, using the naming convention.
-    Raises NotImplementedError if not found.
-    """
+def _get_pricing_func(tag: str
+                      ) -> Callable[..., Any] | None:
+    """ Function returning the pricing function object for a given tag, using the naming convention."""
+
+    # Select the current module
     module = sys.modules[__name__]
+
+    # Build the function name from the valuation tag
     func_name = f"_calc_{tag}_price"
+
+    # Get the function object from this module
     func = getattr(module, func_name, None)
+
+    # Raise error if function is not available
     if func is None:
         raise NotImplementedError(f"No pricing function found for val_tag='{tag}'")
+
     return func
 
-def _get_mtm_base_value(mkt_data, rfs, ref_date):
+def _get_mtm_base_value(mkt_data: pd.DataFrame,
+                        rfs: list,
+                        ref_date: str
+                        ) -> pd.DataFrame:
     """Function selecting the relevant market price from the historical time series'."""
     return mkt_data.loc[[ref_date], rfs]
 
-def _calc_FX_price(rfs, mkt_data, shocks, ref_date):
+def _calc_FX_price(rfs: list,
+                   mkt_data: pd.DataFrame,
+                   shocks: pd.DataFrame,
+                   ref_date: str
+                   ) -> pd.DataFrame:
     """Function getting the FX rate quoted in EUR as of the reference date."""
 
     base_df = _get_mtm_base_value(mkt_data, rfs, ref_date)
@@ -36,7 +51,11 @@ def _calc_FX_price(rfs, mkt_data, shocks, ref_date):
 
     return priced
 
-def _calc_EQ_price(rfs, mkt_data, shocks, ref_date):
+def _calc_EQ_price(rfs: list,
+                   mkt_data: pd.DataFrame,
+                   shocks: pd.DataFrame,
+                   ref_date: str
+                   ) -> pd.DataFrame:
     """Function getting the equity market price as of the reference date."""
 
     base_df = _get_mtm_base_value(mkt_data, rfs, ref_date)
@@ -49,12 +68,11 @@ def _calc_EQ_price(rfs, mkt_data, shocks, ref_date):
 
     return priced
 
-def _calc_BOND_price(
-    face_vals: pd.Series,
-    riskfree_rates: pd.Series,
-    maturities: pd.Series,
-    shocks: pd.DataFrame,
-    ) -> pd.DataFrame:
+def _calc_BOND_price(face_vals: pd.Series,
+                     riskfree_rates: pd.Series,
+                     maturities: pd.Series,
+                     shocks: pd.DataFrame,
+                     ) -> pd.DataFrame:
     """Function pricing a zero-coupon bond excl. inflation and credit risk."""
 
     shocked_rfr = shocks.add(riskfree_rates, axis=1)
@@ -64,7 +82,9 @@ def _calc_BOND_price(
 
     return prices
 
-def _convert_loc_ccy_to_eur(prices_loc, instr_info):
+def _convert_loc_ccy_to_eur(prices_loc: pd.DataFrame,
+                            instr_info: pd.DataFrame
+                            ) -> pd.DataFrame:
     """Function converting prices quoted in local currency to EUR values."""
 
     # Create copy of DataFrame for out-of-place modification
@@ -91,8 +111,12 @@ def _convert_loc_ccy_to_eur(prices_loc, instr_info):
 
     return prices_eur
 
-def build_rf_shock_df(rf_needed, instr_indexed, shocks,
-                      mat_col='maturity', shocks_prefix='IR_EUR_'):
+def build_rf_shock_df(rf_needed: list,
+                      instr_indexed: pd.DataFrame,
+                      shocks: pd.DataFrame,
+                      mat_col: str = 'maturity',
+                      shocks_prefix: str = 'IR_EUR_'
+                      ) -> pd.DataFrame:
     """Builds a DataFrame with one column per element in rf_needed."""
 
     cols = {}
@@ -118,7 +142,11 @@ def build_rf_shock_df(rf_needed, instr_indexed, shocks,
     # Build DataFrame from dict of Series (preserves shocks index / aligns indexes)
     return pd.DataFrame(cols)
 
-def calc_prices(mkt_data, instr_info, ref_date, shocks=None):
+def calc_prices(mkt_data: pd.DataFrame,
+                instr_info: pd.DataFrame,
+                ref_date: str,
+                shocks: pd.DataFrame | None = None
+                ) -> pd.DataFrame:
     """Function running the pricing functions for all financial instruments grouped by val_tag."""
 
     # Set the argument specifications
@@ -156,11 +184,7 @@ def calc_prices(mkt_data, instr_info, ref_date, shocks=None):
         # Load the correct pricing function by naming convention
         if val_tag == "IR":
             val_tag = "BOND"
-        func_name = f"_calc_{val_tag}_price"
-        try:
-            price_func = globals()[func_name]
-        except KeyError:
-            raise RuntimeError(f"Pricing function '{func_name}' not found.")
+        price_func = _get_pricing_func(tag=val_tag)
 
         # Lookup argument order in ARG_SPEC and select only relevant risk factor data
         instr_indexed = instr_info.set_index("fin_instr", drop=False)
@@ -184,7 +208,7 @@ def calc_prices(mkt_data, instr_info, ref_date, shocks=None):
                 if val_tag == "BOND":
                     shocks_sub = build_rf_shock_df(rf_needed, instr_indexed, shocks,
                       mat_col='maturity', shocks_prefix='IR_EUR_')
-                else: 
+                else:
                     shocks_sub = shocks[rf_needed]
                 arg_list.append(shocks_sub)
             elif arg == "ref_date":
@@ -212,7 +236,9 @@ def calc_prices(mkt_data, instr_info, ref_date, shocks=None):
 
     return final
 
-def comp_prices_with_calib_targets(base_values, calib_target):
+def comp_prices_with_calib_targets(base_values: pd.DataFrame,
+                                   calib_target: pd.DataFrame
+                                   ):
     """Function checking whether the base values are close enough to the calibration targets."""
 
     # Compute the absolute value of the difference between each price and the target value
