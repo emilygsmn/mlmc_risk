@@ -1,31 +1,13 @@
 """"Module providing functions for full valuation of the risk factors."""
 
 import sys
-from typing import Any, Callable, Dict, Tuple
 
 import numpy as np
 import pandas as pd
 
-__all__ = ["comp_prices_with_calib_targets"]
+from utils.introspection import get_pricing_arg_spec, get_pricing_func
 
-def _get_pricing_func(tag: str
-                      ) -> Callable[..., Any] | None:
-    """ Function returning the pricing function object for a given tag, using the naming convention."""
-
-    # Select the current module
-    module = sys.modules[__name__]
-
-    # Build the function name from the valuation tag
-    func_name = f"_calc_{tag}_price"
-
-    # Get the function object from this module
-    func = getattr(module, func_name, None)
-
-    # Raise error if function is not available
-    if func is None:
-        raise NotImplementedError(f"No pricing function found for val_tag='{tag}'")
-
-    return func
+__all__ = ["calc_prices", "comp_prices_with_calib_targets"]
 
 def _get_mtm_base_value(mkt_data: pd.DataFrame,
                         rfs: list,
@@ -41,12 +23,17 @@ def _calc_FX_price(rfs: list,
                    ) -> pd.DataFrame:
     """Function getting the FX rate quoted in EUR as of the reference date."""
 
+    # Extract market value at reference date
     base_df = _get_mtm_base_value(mkt_data, rfs, ref_date)
+
+    # Ensure the DataFrame contains exactly one row (market values of at the one chosen date)
     if base_df.shape[0] != 1:
         raise ValueError(f"_get_mtm_base_value must return exactly one row for ref_date={ref_date}")
 
+    # Convert the row data to a Series
     base_series = base_df.iloc[0]
 
+    # Apply the (multiplicative) FX shocks to the base values
     priced = (1 + shocks).multiply(base_series, axis=1)
 
     return priced
@@ -58,12 +45,17 @@ def _calc_EQ_price(rfs: list,
                    ) -> pd.DataFrame:
     """Function getting the equity market price as of the reference date."""
 
+    # Extract market value at reference date
     base_df = _get_mtm_base_value(mkt_data, rfs, ref_date)
+
+    # Ensure the DataFrame contains exactly one row (market values of at the one chosen date)
     if base_df.shape[0] != 1:
         raise ValueError(f"_get_mtm_base_value must return exactly one row for ref_date={ref_date}")
 
+    # Convert the row data to a Series
     base_series = base_df.iloc[0]
 
+    # Apply the (multiplicative) equity shocks to the base values
     priced = (1 + shocks).multiply(base_series, axis=1)
 
     return priced
@@ -75,9 +67,14 @@ def _calc_BOND_price(face_vals: pd.Series,
                      ) -> pd.DataFrame:
     """Function pricing a zero-coupon bond excl. inflation and credit risk."""
 
+    # Apply the (additive) interest rate shocks to the base rates
     shocked_rfr = shocks.add(riskfree_rates, axis=1)
+
+    # Calculate the discount factors based on the shocked rates
     exponent = - shocked_rfr.multiply(maturities, axis=1)
     disc_fact = np.exp(exponent)
+
+    # Calculate present values of the face values
     prices = disc_fact.multiply(face_vals, axis=1)
 
     return prices
@@ -111,12 +108,12 @@ def _convert_loc_ccy_to_eur(prices_loc: pd.DataFrame,
 
     return prices_eur
 
-def build_rf_shock_df(rf_needed: list,
-                      instr_indexed: pd.DataFrame,
-                      shocks: pd.DataFrame,
-                      mat_col: str = 'maturity',
-                      shocks_prefix: str = 'IR_EUR_'
-                      ) -> pd.DataFrame:
+def _build_rf_shock_df(rf_needed: list,
+                       instr_indexed: pd.DataFrame,
+                       shocks: pd.DataFrame,
+                       mat_col: str = 'maturity',
+                       shocks_prefix: str = 'IR_EUR_'
+                       ) -> pd.DataFrame:
     """Builds a DataFrame with one column per element in rf_needed."""
 
     cols = {}
@@ -149,19 +146,16 @@ def calc_prices(mkt_data: pd.DataFrame,
                 ) -> pd.DataFrame:
     """Function running the pricing functions for all financial instruments grouped by val_tag."""
 
-    # Set the argument specifications
-    arg_spec: Dict[str, Tuple[Any, ...]] = {
-        "FX": ("rfs", "mkt_data", "shocks", "ref_date"),
-        "INFL": ("rfs", "mkt_data", "shocks", "ref_date"),
-        "EQ": ("rfs", "mkt_data", "shocks", "ref_date"),
-        "BOND": ("riskfree_rates", "face_vals", "maturities", "shocks")
-        }
+    # Get the dict of all pricing argument specs
+    arg_spec = get_pricing_arg_spec(module=sys.modules[__name__],
+                                     prefix="_calc_",
+                                     suffix="_price")
 
     # Set shock to zero for base scenario valuation
     if shocks is None:
         shocks = pd.DataFrame(
-            data=[np.zeros(len(instr_info["fin_instr"]))],
-            columns=instr_info["fin_instr"]
+            data=[np.zeros(mkt_data.shape[1])],
+            columns=mkt_data.columns
             )
 
     # Initialize list to collect the data for different valuation types in
@@ -182,18 +176,18 @@ def calc_prices(mkt_data: pd.DataFrame,
         rf_needed = instruments
 
         # Load the correct pricing function by naming convention
-        if val_tag == "IR":
-            val_tag = "BOND"
-        price_func = _get_pricing_func(tag=val_tag)
+        price_func = get_pricing_func(tag=val_tag,
+                                      module=sys.modules[__name__]
+                                      )
 
-        # Lookup argument order in ARG_SPEC and select only relevant risk factor data
+        # Lookup argument order in arg_spec and select only relevant risk factor data
         instr_indexed = instr_info.set_index("fin_instr", drop=False)
         arg_list = []
         for arg in arg_spec[val_tag]:
             if arg == "rfs":
                 arg_list.append(rf_needed)
             elif arg == "mkt_data":
-                mkt_sub    = mkt_data[rf_needed]
+                mkt_sub = mkt_data[rf_needed]
                 arg_list.append(mkt_sub)
             elif arg == "riskfree_rates":
                 rfr_sub = instr_indexed.loc[rf_needed, "rfr"]
@@ -206,7 +200,7 @@ def calc_prices(mkt_data: pd.DataFrame,
                 arg_list.append(maturities.astype(float))
             elif arg == "shocks":
                 if val_tag == "BOND":
-                    shocks_sub = build_rf_shock_df(rf_needed, instr_indexed, shocks,
+                    shocks_sub = _build_rf_shock_df(rf_needed, instr_indexed, shocks,
                       mat_col='maturity', shocks_prefix='IR_EUR_')
                 else:
                     shocks_sub = shocks[rf_needed]
@@ -219,7 +213,7 @@ def calc_prices(mkt_data: pd.DataFrame,
         # Call the relevant pricing function
         prices = price_func(*arg_list)
 
-        # priced_df must contain exactly the same columns requested
+        # prices must contain exactly the same columns requested
         prices = prices[rf_needed]
 
         # Collect the resulting data frames
