@@ -34,7 +34,7 @@ def calc_portfolio_pnl(instr_pnls: pd.DataFrame
     # Ensure all values in the DataFrame are numeric
     if not all(pd.api.types.is_numeric_dtype(dtype) for dtype in instr_pnls.dtypes):
         raise ValueError(f"Not all columns in the DataFrame are numeric: {instr_pnls}.")
-    
+
     return instr_pnls.sum(axis=1).to_frame(name="total_pnl")
 
 def apply_hd_weighting(vals, p):
@@ -69,7 +69,7 @@ def calc_standard_mc_hd_var(vals_df: pd.DataFrame,
         raise ValueError("vals_df must contain exactly one column.")
 
     # Ensure confidence level is in (0,1)
-    if not (0 < conf_lvl < 1):
+    if not 0 < conf_lvl < 1:
         raise ValueError("conf_lvl must be a numeric value strictly between 0 and 1.")
 
     # Ensure all data in the DataFrame is numeric
