@@ -70,12 +70,55 @@ def _calc_ZCB_price(face_vals: pd.Series,
     # Apply the (additive) interest rate shocks to the base rates
     shocked_rfr = shocks.add(riskfree_rates, axis=1)
 
-    # Calculate the discount factors based on the shocked rates
+    # Calculate the discount factors based on the shocked rates (continuous compounding)
     exponent = - shocked_rfr.multiply(maturities, axis=1)
     disc_fact = np.exp(exponent)
 
     # Calculate present values of the face values
-    prices = disc_fact.multiply(face_vals, axis=1)
+    prices = face_vals.multiply(disc_fact, axis=1)
+
+    return prices
+
+def _calc_ZCB_INFL_price(face_vals: pd.Series,
+                         riskfree_rates: pd.Series,
+                         maturities: pd.Series,
+                         set_infl: pd.Series,
+                         shocks: pd.DataFrame
+                         ) -> pd.DataFrame:
+    """Function pricing an inflation-linked zero-coupon bond excl. credit risk."""
+
+    # Apply inflation to the face values
+    infl_fact = (1 + set_infl).pow(maturities)
+    infl_adj_face_vals = face_vals.multiply(infl_fact)
+
+    # Apply the (additive) interest rate shocks to the base rates
+    shocked_rfr = shocks.add(riskfree_rates, axis=1)
+
+    # Calculate the discount factors based on the shocked rates (discrete compounding)
+    disc_fact = 1 / (1 + shocked_rfr).pow(maturities)
+
+    # Calculate present values of the face values
+    prices = infl_adj_face_vals.multiply(disc_fact, axis=1)
+
+    return prices
+
+def _calc_ZCB_CS_price(face_vals: pd.Series,
+                       riskfree_rates: pd.Series,
+                       maturities: pd.Series,
+                       cra: pd.Series,
+                       set_cs: pd.Series,
+                       shocks: pd.DataFrame
+                       ) -> pd.DataFrame:
+    """Function pricing a zero-coupon bond with credit risk, excl. inflation."""
+
+    # Apply the (additive) interest rate shocks to the base rates
+    shocked_rfr = shocks.add(riskfree_rates, axis=1)
+
+    # Calculate the discount factors based on the shocked rates (discrete compounding)
+    disc_fact = 1 / (1 + shocked_rfr + cra + set_cs).pow(maturities)
+
+    # Calculate present values of the face values
+    prices = face_vals.multiply(disc_fact, axis=1)
 
     return prices
 
