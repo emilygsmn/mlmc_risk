@@ -20,24 +20,41 @@ def _select_port_instr(port, instr_info):
 
 def _add_valuation_tag(instr_info):
     """Function categorizing the instruments by valuation method."""
-    # BOND, BOND_FX, BOND_IF, BOND_IF_FX, BOND_CS, BOND_CS_FX, BOND_IF_CS, BOND_IF_CS_FX
-    # DER_SWAP, DER_PUT
-    # FX
-    # ...
 
     # Define the conditions to assign the valuation tags by
     def _classify(name):
+        # Foreign currency
         if name.startswith("FX"):
             return "FX"
+        # Equity (shares or indices)
         if name.startswith("Other-EQ"):
             return "EQ"
+        # Real estate
+        if name.startswith("Other-RE"):
+            return "RE"
+        # Zero-coupon bonds
         if "FI" in name:
-            if name.startswith("GOV-FI-"):
-                return "BOND"
-            if name == "FI-GBP-RFR-NA-NA-NA-NA-01" or name == "GOV-FI-UK-NA-NA-05":
-                return "BOND_FX"
+            # Inflation-linked zero-coupon bond
+            if "-INFL-" in name:
+                return "ZCB_INFL"
+            # Zero-coupon bond free from inflation and credit risk
+            if "-RFR-" in name:
+                return "ZCB"
+            # Zero-coupon bond with credit risk
+            return "ZCB_CS"
+        # Derivatives
+        if name.startswith("DER"):
+            # Swaption
+            if "-SWA-" in name:
+                return "SWAP"
+            # Equity put option
+            if "EQ-PUT" in name:
+                return "EQPUT"
+            # Equity call option
+            if "EQ-CALL" in name:
+                return "EQCALL"
         else:
-            return "unknown"
+            return None
 
     # Apply the classification to all instruments and save the tag in new column
     instr_info["val_tag"] = instr_info["fin_instr"].apply(_classify)

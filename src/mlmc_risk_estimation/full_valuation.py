@@ -60,7 +60,7 @@ def _calc_EQ_price(rfs: list,
 
     return priced
 
-def _calc_BOND_price(face_vals: pd.Series,
+def _calc_ZCB_price(face_vals: pd.Series,
                      riskfree_rates: pd.Series,
                      maturities: pd.Series,
                      shocks: pd.DataFrame,
@@ -91,10 +91,11 @@ def _convert_loc_ccy_to_eur(prices_loc: pd.DataFrame,
 
         # Select current instrument and currency
         instr = row["fin_instr"]
+        val_tag = row["val_tag"]
         ccy = row["ccy"]
 
         # Skip EUR-denominated instruments
-        if instr.startswith("FX-") or ccy == "EUR":
+        if val_tag == "FX" or ccy == "EUR":
             continue
 
         # Construct FX column name
@@ -199,7 +200,7 @@ def calc_prices(mkt_data: pd.DataFrame,
                 maturities = instr_indexed.loc[rf_needed, "maturity"]
                 arg_list.append(maturities.astype(float))
             elif arg == "shocks":
-                if val_tag == "BOND":
+                if val_tag == "ZCB":
                     shocks_sub = _build_rf_shock_df(rf_needed, instr_indexed, shocks,
                       mat_col='maturity', shocks_prefix='IR_EUR_')
                 else:
