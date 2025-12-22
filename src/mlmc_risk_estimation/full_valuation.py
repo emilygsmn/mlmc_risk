@@ -105,7 +105,7 @@ def _calc_ZCB_INFL_price(face_vals: pd.Series,
 def _calc_ZCB_CS_price(face_vals: pd.Series,
                        riskfree_rates: pd.Series,
                        maturities: pd.Series,
-                       cra: pd.Series,
+                       cra_bsp: pd.Series,
                        set_cs: pd.Series,
                        shocks: pd.DataFrame
                        ) -> pd.DataFrame:
@@ -113,6 +113,9 @@ def _calc_ZCB_CS_price(face_vals: pd.Series,
 
     # Apply the (additive) interest rate shocks to the base rates
     shocked_rfr = shocks.add(riskfree_rates, axis=1)
+
+    # Convert credit risk adjustment from basis points to decimal
+    cra = cra_bsp / 10E+3
 
     # Calculate the discount factors based on the shocked rates (discrete compounding)
     disc_fact = 1 / (1 + shocked_rfr + cra + set_cs).pow(maturities)
@@ -242,6 +245,9 @@ def calc_prices(mkt_data: pd.DataFrame,
             elif arg == "maturities":
                 maturities = instr_indexed.loc[rf_needed, "maturity"]
                 arg_list.append(maturities.astype(float))
+            elif arg == "cra_bps":
+                cra_bps = instr_indexed.loc[rf_needed, "cra (bps)"]
+                arg_list.append(cra_bps.astype(float))
             elif arg == "shocks":
                 if val_tag == "ZCB":
                     shocks_sub = _build_rf_shock_df(rf_needed, instr_indexed, shocks,
