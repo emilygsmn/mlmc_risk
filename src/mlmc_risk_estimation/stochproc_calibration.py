@@ -9,12 +9,14 @@ __all__ = ["calibrate_models"]
 def _get_return_time_incr(ret_length):
     """Function getting the size of a time increment for return calculation."""
 
+    # For weekly returns, one time increment consists of 5 days
     if ret_length == "week":
         return 5
-    elif ret_length == "quarter":
+    # For quarterly returns, one time increment consists of 13 weeks
+    if ret_length == "quarter":
         return 13
-    else:
-        raise ValueError(f"Unknown return length '{ret_length}'.")
+    # Raise error in the case of another return length
+    raise ValueError(f"Unknown return length '{ret_length}'.")
 
 def _calc_rel_returns(time_series, ret_length):
     """Function calculating the relative returns given a series of prices."""
@@ -45,22 +47,29 @@ def _calc_abs_returns(time_series, ret_length):
 def _calc_vola_from_time_series(returns, mu=0, dt=4):
     """Function calculating the empirical volatility from a time series."""
 
+    # Calculate the root mean square deviation of the returns from the mean
     rms_dev = np.sqrt(np.mean((returns - mu)**2))
+
+    # Calculate time scaling factor
     t_scaling = 1 / np.sqrt(dt)
+
+    # Apply time scaling to the root mean square deviation
     return rms_dev * t_scaling
 
 def _get_num_returns_pa(ret_length):
     """Function getting the number of returns within a year, given a return period length."""
 
+    # For weekly returns, there are 52 return values per year
     if ret_length == "week":
         return 52
-    elif ret_length == "quarter":
+    # For quarterly returns, there are 4 return values per year
+    if ret_length == "quarter":
         return 4
-    else:
-        raise ValueError(f"Unknown return length '{ret_length}'.")
+    # Raise error in the case of another return length
+    raise ValueError(f"Unknown return length '{ret_length}'.")
 
 def _convert_to_rel_return_vola(emp_vola):
-    """Fnction converting an absolute return volatility to a relative one."""
+    """Function converting an absolute return volatility to a relative one."""
     return emp_vola
 
 def _get_empirical_vola(time_series, ret_type="rel", ret_length="quarter", conv_to_rel=False):
@@ -83,23 +92,32 @@ def _get_empirical_vola(time_series, ret_type="rel", ret_length="quarter", conv_
     # If applicable, convert the abs. return vola to a rel. return vola
     if conv_to_rel:
         return _convert_to_rel_return_vola(emp_vola)
-    else:
-        return emp_vola
+    return emp_vola
 
 def calibrate_models(mkt_data, instr_info, param_config):
     """Function calibrating the stochastic processes to given market data."""
 
+    # Extract the calibration methods
     calib_methods = param_config["valuation"]["calibr_methods"]
+
+    # Extract the risk factor names
     rfs = mkt_data.columns
 
+    # Create indexed instrument info DataFrame for faster processing
     instr_indexed = instr_info.set_index("fin_instr", drop=False)
+
+    # Initialize DataFrame for volatilities
     volas = pd.DataFrame(index=["sigma"], columns=rfs)
 
+    # Loop through all risk factors
     for rf in rfs:
+        # Extract the risk type of the current risk factor
         if rf.startswith("IR"):
             risk_type = "IR"
         else:
             risk_type = instr_indexed.loc[rf, "val_tag"]
+        
+        # Calculate the volatility for the chosen risk factor
         volas.loc["sigma", rf] = _get_empirical_vola(
             time_series=np.array(mkt_data[rf]),
             ret_type=calib_methods["return_type"][risk_type],
