@@ -5,7 +5,7 @@ import pandas as pd
 
 from utils.io_helpers import read_config, get_portfolio, get_instr_info
 from utils.preproc_helpers import preproc_portfolio, get_historical_data
-from stochproc_calibration import calibrate_models
+from model_calibration import calibrate_models
 from scenario_generation import generate_mc_shocks_pycopula
 from full_valuation import calc_prices, comp_prices_with_calib_targets
 from risk_aggregation import (
@@ -64,6 +64,8 @@ def main():
     ### 3. Price the portfolio instruments ###
     ################################################################################################
 
+    instr_info, calib_param = calibrate_models(hist_data, instr_info, param_config)
+
     # Compute the prices of the instruments at the reference date (base values)
     val_date = param_config["valuation"]["val_date"]
     base_values = calc_prices(mkt_data=hist_data,
@@ -81,7 +83,7 @@ def main():
     ### 4. Generate Monte Carlo scenarios ###
     ################################################################################################
 
-    calib_param = calibrate_models(hist_data, instr_info, param_config)
+    #calib_param = calibrate_models(hist_data, instr_info, param_config)
 
     # Estimate the calibration parameters from the historical data
     calib_param = {

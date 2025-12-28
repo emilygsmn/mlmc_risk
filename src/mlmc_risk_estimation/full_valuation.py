@@ -75,7 +75,7 @@ def _calc_ZCB_price(face_vals: pd.Series,
     disc_fact = np.exp(exponent)
 
     # Calculate present values of the face values
-    prices = face_vals.multiply(disc_fact, axis=1)
+    prices = disc_fact.multiply(face_vals, axis=1)
 
     return prices
 
@@ -98,14 +98,14 @@ def _calc_ZCB_INFL_price(face_vals: pd.Series,
     disc_fact = 1 / (1 + shocked_rfr).pow(maturities)
 
     # Calculate present values of the face values
-    prices = infl_adj_face_vals.multiply(disc_fact, axis=1)
+    prices = disc_fact.multiply(infl_adj_face_vals, axis=1)
 
     return prices
 
 def _calc_ZCB_CS_price(face_vals: pd.Series,
                        riskfree_rates: pd.Series,
                        maturities: pd.Series,
-                       cra_bsp: pd.Series,
+                       cra_bps: pd.Series,
                        set_cs: pd.Series,
                        shocks: pd.DataFrame
                        ) -> pd.DataFrame:
@@ -115,13 +115,13 @@ def _calc_ZCB_CS_price(face_vals: pd.Series,
     shocked_rfr = shocks.add(riskfree_rates, axis=1)
 
     # Convert credit risk adjustment from basis points to decimal
-    cra = cra_bsp / 10E+3
+    cra = cra_bps / 10E+3
 
     # Calculate the discount factors based on the shocked rates (discrete compounding)
     disc_fact = 1 / (1 + shocked_rfr + cra + set_cs).pow(maturities)
 
     # Calculate present values of the face values
-    prices = face_vals.multiply(disc_fact, axis=1)
+    prices = disc_fact.multiply(face_vals, axis=1)
 
     return prices
 
@@ -178,6 +178,7 @@ def _build_rf_shock_df(rf_needed: list,
 
         shocks_col = f"{shocks_prefix}{mat_str}"
         if shocks_col not in shocks.columns:
+            print(shocks.columns)
             raise KeyError(f"Column '{shocks_col}' not found in shocks")
 
         # Take the series from shocks (alignment by index will happen automatically)
@@ -227,8 +228,10 @@ def calc_prices(mkt_data: pd.DataFrame,
                                       module=sys.modules[__name__]
                                       )
 
-        # Lookup argument order in arg_spec and select only relevant risk factor data
+        # Create indexed instrument info DataFrame for faster processing
         instr_indexed = instr_info.set_index("fin_instr", drop=False)
+
+        # Lookup argument order in arg_spec and select only relevant risk factor data
         arg_list = []
         for arg in arg_spec[val_tag]:
             if arg == "rfs":
@@ -248,8 +251,11 @@ def calc_prices(mkt_data: pd.DataFrame,
             elif arg == "cra_bps":
                 cra_bps = instr_indexed.loc[rf_needed, "cra (bps)"]
                 arg_list.append(cra_bps.astype(float))
+            elif arg == "set_cs":
+                set_cs = instr_indexed.loc[rf_needed, "set_cs"]
+                arg_list.append(set_cs.astype(float))
             elif arg == "shocks":
-                if val_tag == "ZCB":
+                if "ZCB" in val_tag:
                     shocks_sub = _build_rf_shock_df(rf_needed, instr_indexed, shocks,
                       mat_col='maturity', shocks_prefix='IR_EUR_')
                 else:

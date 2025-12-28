@@ -94,7 +94,7 @@ def _get_empirical_vola(time_series, ret_type="rel", ret_length="quarter", conv_
         return _convert_to_rel_return_vola(emp_vola)
     return emp_vola
 
-def calibrate_models(mkt_data, instr_info, param_config):
+def calibrate_stoch_procs(mkt_data, instr_info, param_config):
     """Function calibrating the stochastic processes to given market data."""
 
     # Extract the calibration methods
@@ -126,3 +126,61 @@ def calibrate_models(mkt_data, instr_info, param_config):
             )
 
     return volas
+
+def calc_set_credit_spreads(face_vals: pd.Series,
+                            rfr: pd.Series,
+                            maturities: pd.Series,
+                            cra_bsp: pd.Series,
+                            calib_targ: pd.Series
+                            ) -> pd.Series:
+    """Function calculating the set credit spreads using given calibration targets."""
+
+    # Convert credit risk adjustment from basis points to decimal
+    cra = cra_bsp / 10E+3
+
+    # Calculate the implied rates given the calibration targets
+    implied_rate = (face_vals.divide(calib_targ)).pow(1 / maturities)
+
+    # Calculate set credit spreads
+    set_cs = implied_rate - 1 - rfr - cra
+
+    return set_cs
+
+def calibrate_credit_spreads(instr_info:pd.DataFrame) -> pd.DataFrame:
+    """Function calibrating the bond pricing model in terms of credit spreads."""
+
+    # Select all instrument names for this val_tag
+    mask = instr_info["val_tag"] == "ZCB_CS"
+    instruments = instr_info.loc[mask, "fin_instr"].tolist()
+
+    # Skip processing if no risk factor uses the current valuation type
+    if not instruments:
+        return instr_info
+
+    # Determine which risk factors are needed
+    rf_needed = instruments
+
+    # Create indexed instrument info DataFrame for faster processing
+    instr_indexed = instr_info.set_index("fin_instr", drop=False)
+
+    fv = instr_indexed.loc[rf_needed, "notional_/_pos_units"]
+
+    # Calculate the set credit spreads
+    instr_indexed.loc[rf_needed, "set_cs"] = calc_set_credit_spreads(face_vals=fv.astype(float),
+                            rfr=instr_indexed.loc[rf_needed, "rfr"].astype(float),
+                            maturities=instr_indexed.loc[rf_needed, "maturity"].astype(float),
+                            cra_bsp=instr_indexed.loc[rf_needed, "cra (bps)"].astype(float),
+                            calib_targ=instr_indexed.loc[rf_needed, "calibration_target"].astype(float)
+                            )
+
+    return instr_indexed.reset_index(drop=True)
+
+def calibrate_models(mkt_data, instr_info, param_config):
+
+    # Volatility calibration for the stochastic processes
+    volas = calibrate_stoch_procs(mkt_data, instr_info, param_config)
+
+    # Set credit spread calibration
+    instr_info = calibrate_credit_spreads(instr_info)
+
+    return instr_info, volas
