@@ -163,13 +163,56 @@ def calibrate_credit_spreads(instr_info:pd.DataFrame) -> pd.DataFrame:
     # Create indexed instrument info DataFrame for faster processing
     instr_indexed = instr_info.set_index("fin_instr", drop=False)
 
-    fv = instr_indexed.loc[rf_needed, "notional_/_pos_units"]
-
     # Calculate the set credit spreads
-    instr_indexed.loc[rf_needed, "set_cs"] = calc_set_credit_spreads(face_vals=fv.astype(float),
+    instr_indexed.loc[rf_needed, "set_cs"] = calc_set_credit_spreads(face_vals=instr_indexed.loc[rf_needed, "notional_/_pos_units"].astype(float),
                             rfr=instr_indexed.loc[rf_needed, "rfr"].astype(float),
                             maturities=instr_indexed.loc[rf_needed, "maturity"].astype(float),
                             cra_bsp=instr_indexed.loc[rf_needed, "cra (bps)"].astype(float),
+                            calib_targ=instr_indexed.loc[rf_needed, "calibration_target"].astype(float)
+                            )
+
+    return instr_indexed.reset_index(drop=True)
+
+
+def calc_set_inflation(face_vals:pd.Series,
+                        rfr:pd.Series,
+                        maturities:pd.Series,
+                        calib_targ:pd.Series
+                        ) -> pd.Series:
+    """Function calculating the set inflation using given calibration targets."""
+
+    # Calculate the inverse of the discount factor
+    inv_disc_fact = (1 + rfr).pow(maturities)
+
+    # Calculate the implied rates given the calibration targets
+    implied_rate = (calib_targ.multiply(inv_disc_fact).divide(face_vals))
+
+    # Calculate set inflation
+    set_infl = implied_rate.pow(1 / maturities) - 1
+
+    return set_infl
+
+def calibrate_inflation(instr_info:pd.DataFrame) -> pd.DataFrame:
+    """Function calibrating the bond pricing model in terms of inflation."""
+
+    # Select all instrument names for this val_tag
+    mask = instr_info["val_tag"] == "ZCB_INFL"
+    instruments = instr_info.loc[mask, "fin_instr"].tolist()
+
+    # Skip processing if no risk factor uses the current valuation type
+    if not instruments:
+        return instr_info
+
+    # Determine which risk factors are needed
+    rf_needed = instruments
+
+    # Create indexed instrument info DataFrame for faster processing
+    instr_indexed = instr_info.set_index("fin_instr", drop=False)
+
+    # Calculate the set inflation
+    instr_indexed.loc[rf_needed, "set_infl"] = calc_set_inflation(face_vals=instr_indexed.loc[rf_needed, "notional_/_pos_units"].astype(float),
+                            rfr=instr_indexed.loc[rf_needed, "rfr"].astype(float),
+                            maturities=instr_indexed.loc[rf_needed, "maturity"].astype(float),
                             calib_targ=instr_indexed.loc[rf_needed, "calibration_target"].astype(float)
                             )
 
@@ -182,5 +225,8 @@ def calibrate_models(mkt_data, instr_info, param_config):
 
     # Set credit spread calibration
     instr_info = calibrate_credit_spreads(instr_info)
+
+    # Set inflation calibration
+    instr_info = calibrate_inflation(instr_info)
 
     return instr_info, volas

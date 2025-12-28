@@ -254,6 +254,9 @@ def calc_prices(mkt_data: pd.DataFrame,
             elif arg == "set_cs":
                 set_cs = instr_indexed.loc[rf_needed, "set_cs"]
                 arg_list.append(set_cs.astype(float))
+            elif arg == "set_infl":
+                set_infl = instr_indexed.loc[rf_needed, "set_infl"]
+                arg_list.append(set_infl.astype(float))
             elif arg == "shocks":
                 if "ZCB" in val_tag:
                     shocks_sub = _build_rf_shock_df(rf_needed, instr_indexed, shocks,
