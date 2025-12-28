@@ -100,7 +100,7 @@ def import_riskfree_rates_from_file(input_config, instr_info):
     # Select the maturities needed for EUR government bonds
     maturities = (
       instr_info
-      .loc[instr_info["sector_level_1"] == "GOV", "maturity"]
+      .loc[instr_info["instr_type"] == "FI", "maturity"]
       .astype(int)
       .unique()
       .tolist()
