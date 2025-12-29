@@ -100,9 +100,9 @@ def import_riskfree_rates_from_file(input_config, instr_info):
     # Initialize the data frame to collect the time series in
     rfr_df = None
 
+    # Loop through all currencies
     for ccy in currencies:
-        print("_________________________")
-        print(ccy)
+        # Select relevant input data
         ccy_input = path_dict[ccy]
 
         # Get the base file path
@@ -128,16 +128,12 @@ def import_riskfree_rates_from_file(input_config, instr_info):
         for m in mats:
             # Create complete file path
             file = base + f"_{m}y.csv"
-            print(file)
 
             # Read the time series from the csv
             tmp_df = pd.read_csv(file, header=0, usecols=cols_to_read)
             tmp_df.columns = ["date", f"IR_{ccy}_{m}"]
             tmp_df["date"] = pd.to_datetime(tmp_df["date"])
             tmp_df = tmp_df.set_index("date").sort_index()
-
-            print("temporary data frame")
-            print(tmp_df)
 
             # Only add the new data to the df if the dates match
             if rfr_df is None:
@@ -156,6 +152,5 @@ def import_riskfree_rates_from_file(input_config, instr_info):
                     rfr_df[col_name] = aligned[col_name]
                 else:
                     rfr_df[col_name] = tmp_df[col_name]
-
 
     return rfr_df
