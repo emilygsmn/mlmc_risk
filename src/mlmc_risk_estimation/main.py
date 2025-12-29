@@ -8,7 +8,7 @@ from utils.preproc_helpers import preproc_portfolio, get_historical_data
 from model_calibration import calibrate_models
 from scenario_generation import generate_mc_shocks_pycopula
 from full_valuation import calc_prices, comp_prices_with_calib_targets
-from deltagamma_valuation import _get_greeks, calc_delta_scenario_pnl
+from deltagamma_valuation import calc_delta_scenario_pnl
 from risk_aggregation import (
     calc_instr_pnls,
     calc_portfolio_pnl,
