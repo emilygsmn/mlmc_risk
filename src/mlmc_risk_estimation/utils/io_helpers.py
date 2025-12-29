@@ -92,42 +92,70 @@ def import_hist_market_data(param_config, instr_info):
     return mkt_data
 
 def import_riskfree_rates_from_file(input_config, instr_info):
-    """Function importing the ECB risk-free rates from csv files."""
+    """Function importing the risk-free rates from csv files."""
 
-    # Get the base file path
-    base = input_config["ecb_rfr_data"]
-
-    # Select the maturities needed for EUR government bonds
-    maturities = (
-      instr_info
-      .loc[instr_info["instr_type"] == "FI", "maturity"]
-      .astype(int)
-      .unique()
-      .tolist()
-    )
-    mats = [f"{int(m):02d}" for m in maturities]
+    path_dict = input_config["rfr_data"]
+    currencies = list(path_dict.keys())
 
     # Initialize the data frame to collect the time series in
     rfr_df = None
 
-    # Loop over all relevant maturities
-    for m in mats:
-        # Create complete file path
-        file = base + f"_{m}y.csv"
+    for ccy in currencies:
+        print("_________________________")
+        print(ccy)
+        ccy_input = path_dict[ccy]
 
-        # Read the time series from the csv
-        tmp_df = pd.read_csv(file, header=0, usecols=[0, 2])
-        tmp_df.columns = ["date", f"IR_EUR_{m}"]
-        tmp_df["date"] = pd.to_datetime(tmp_df["date"])
-        tmp_df = tmp_df.set_index("date").sort_index()
+        # Get the base file path
+        base = ccy_input["path"]
 
-        # Only add the new data to the df if the dates match
-        if rfr_df is None:
-            rfr_df = tmp_df
-        else:
-            # Ensure that the dates match
-            if not rfr_df.index.equals(tmp_df.index):
-                raise ValueError(f"Date mismatch in file {file}")
-            rfr_df[f"IR_EUR_{m}"] = tmp_df[f"IR_EUR_{m}"]
+        # Get indices of columns to read from
+        date_col = ccy_input["date_col"]
+        data_col = ccy_input["data_col"]
+        cols_to_read = [date_col, data_col]
+
+        # Select the maturities needed for bonds in the selected currency
+        maturities = (
+        instr_info
+        .loc[instr_info["ccy"] == ccy]
+        .loc[instr_info["instr_type"] == "FI", "maturity"]
+        .astype(int)
+        .unique()
+        .tolist()
+        )
+        mats = [f"{int(m):02d}" for m in maturities]
+
+        # Loop over all relevant maturities
+        for m in mats:
+            # Create complete file path
+            file = base + f"_{m}y.csv"
+            print(file)
+
+            # Read the time series from the csv
+            tmp_df = pd.read_csv(file, header=0, usecols=cols_to_read)
+            tmp_df.columns = ["date", f"IR_{ccy}_{m}"]
+            tmp_df["date"] = pd.to_datetime(tmp_df["date"])
+            tmp_df = tmp_df.set_index("date").sort_index()
+
+            print("temporary data frame")
+            print(tmp_df)
+
+            # Only add the new data to the df if the dates match
+            if rfr_df is None:
+                rfr_df = tmp_df
+            else:
+                # Ensure that the dates match
+                col_name = f"IR_{ccy}_{m}"
+
+                if not rfr_df.index.equals(tmp_df.index):
+                    # Align tmp_df to rfr_df dates and forward-fill missing values
+                    aligned = (
+                        tmp_df
+                        .reindex(rfr_df.index)
+                        .ffill()
+                    )
+                    rfr_df[col_name] = aligned[col_name]
+                else:
+                    rfr_df[col_name] = tmp_df[col_name]
+
 
     return rfr_df

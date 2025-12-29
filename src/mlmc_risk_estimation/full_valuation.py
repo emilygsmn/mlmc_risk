@@ -157,18 +157,22 @@ def _convert_loc_ccy_to_eur(prices_loc: pd.DataFrame,
 
 def _build_rf_shock_df(rf_needed: list,
                        instr_indexed: pd.DataFrame,
-                       shocks: pd.DataFrame,
-                       mat_col: str = 'maturity',
-                       shocks_prefix: str = 'IR_EUR_'
+                       shocks: pd.DataFrame
                        ) -> pd.DataFrame:
     """Builds a DataFrame with one column per element in rf_needed."""
 
+    # Initialize dictionary of data columns
     cols = {}
+
+    # Loop through all relevant risk factors
     for rf in rf_needed:
         # Ensure rf exists in instr_indexed index
         if rf not in instr_indexed.index:
             raise KeyError(f"Risk factor '{rf}' not found in instr_indexed.index")
-        mat = instr_indexed.at[rf, mat_col]
+
+        # Get maturity and currency of the selected risk factor
+        mat = instr_indexed.at[rf, "maturity"]
+        ccy = instr_indexed.at[rf, "ccy"]
 
         # Format maturity to 2-digit string if numeric-like
         try:
@@ -176,7 +180,7 @@ def _build_rf_shock_df(rf_needed: list,
         except Exception:
             mat_str = str(mat)
 
-        shocks_col = f"{shocks_prefix}{mat_str}"
+        shocks_col = f"IR_{ccy}_{mat_str}"
         if shocks_col not in shocks.columns:
             print(shocks.columns)
             raise KeyError(f"Column '{shocks_col}' not found in shocks")
@@ -259,8 +263,7 @@ def calc_prices(mkt_data: pd.DataFrame,
                 arg_list.append(set_infl.astype(float))
             elif arg == "shocks":
                 if "ZCB" in val_tag:
-                    shocks_sub = _build_rf_shock_df(rf_needed, instr_indexed, shocks,
-                      mat_col='maturity', shocks_prefix='IR_EUR_')
+                    shocks_sub = _build_rf_shock_df(rf_needed, instr_indexed, shocks)
                 else:
                     shocks_sub = shocks[rf_needed]
                 arg_list.append(shocks_sub)
