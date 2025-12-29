@@ -8,6 +8,7 @@ from utils.preproc_helpers import preproc_portfolio, get_historical_data
 from model_calibration import calibrate_models
 from scenario_generation import generate_mc_shocks_pycopula
 from full_valuation import calc_prices, comp_prices_with_calib_targets
+from deltagamma_valuation import _get_greeks, calc_delta_scenario_pnl
 from risk_aggregation import (
     calc_instr_pnls,
     calc_portfolio_pnl,
@@ -135,6 +136,24 @@ def main():
                                      conf_lvl=0.995)
     print("Standard Monte Carlo Harrell-Davis Value-at-Risk:")
     print(hd_var)
+
+    ################################################################################################
+    ### 8. Estimate the Delta Value-at-Risk ###
+    ################################################################################################
+
+    delta_scenario_pnl = calc_delta_scenario_pnl(mkt_data=hist_data,
+                                        instr_info=instr_info,
+                                        ref_date=val_date,
+                                        scenario_shocks=mc_scenarios)
+    
+    print("Delta scenario profit-and-losses")
+    print(delta_scenario_pnl)
+
+    delta_hd_var = calc_standard_mc_hd_var(vals_df=delta_scenario_pnl,
+                                           conf_lvl=0.995)
+    
+    print("Delta Standard Monte Carlo Harrell-Davis Value-at-Risk:")
+    print(delta_hd_var)
 
 if __name__ == "__main__":
     main()
