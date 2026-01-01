@@ -93,7 +93,7 @@ def _calc_shock_with_sgbm(x, mu, sigma, dt, shift):
 
     return (1 + shift) * gbm - shift
 
-def _map_to_marginals(samples, marg_distr_map, instr_info, param_dict):
+def _map_to_marginals(samples, marg_distr_map, instr_info, param):
     """Function to map the correlated uniform MC samples to their marginal shock distributions."""
 
     shock_functions = {
@@ -111,20 +111,22 @@ def _map_to_marginals(samples, marg_distr_map, instr_info, param_dict):
             val_tag = instr_info.loc[instr_info["fin_instr"] == col, "val_tag"].iloc[0]
         model_type = marg_distr_map[val_tag]
         shock_fun = shock_functions[model_type]
-        param = param_dict[val_tag]
+
+        sigma = param.loc["sigma", col]
 
         # Pick correct call signature
         if model_type == "Shift_Geom_BM":
+            shift = 0.03
             mc_shocks[col] = shock_fun(samples[col],
-                                        mu=param["mu"],
-                                        sigma=param["sigma"],
-                                        dt=param["dt"],
-                                        shift=param["shift"])
+                                        mu=0,
+                                        sigma=sigma,
+                                        dt=1,
+                                        shift=shift)
         else:
             mc_shocks[col] = shock_fun(samples[col],
-                                        mu=param["mu"],
-                                        sigma=param["sigma"],
-                                        dt=param["dt"])
+                                        mu=0,
+                                        sigma=sigma,
+                                        dt=1)
 
     return mc_shocks
 
@@ -146,5 +148,5 @@ def generate_mc_shocks_pycopula(market_data, instr_info, param_config, calib_par
     return _map_to_marginals(samples=corr_normal_samples,
                              marg_distr_map=param_config["valuation"]["stoch_proc_map"],
                              instr_info=instr_info,
-                             param_dict=calib_param
+                             param=calib_param
                              )

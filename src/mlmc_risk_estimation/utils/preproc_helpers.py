@@ -101,10 +101,7 @@ def preproc_portfolio(port, instr_info):
     # Add a valuation tag
     instr_info = _add_valuation_tag(instr_info)
 
-    # Get calibration target
-    calib_target = _get_calib_target(instr_info)
-
-    return port, instr_info, calib_target
+    return port, instr_info
 
 def merge_ecb_with_yf(df_ecb: pd.DataFrame, df_yf: pd.DataFrame) -> pd.DataFrame:
     """Function merging historical data from ECB and Yahoo! Finance (only for common dates)."""
