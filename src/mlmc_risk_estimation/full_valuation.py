@@ -182,7 +182,6 @@ def _build_rf_shock_df(rf_needed: list,
 
         shocks_col = f"IR_{ccy}_{mat_str}"
         if shocks_col not in shocks.columns:
-            print(shocks.columns)
             raise KeyError(f"Column '{shocks_col}' not found in shocks")
 
         # Take the series from shocks (alignment by index will happen automatically)
