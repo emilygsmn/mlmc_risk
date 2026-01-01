@@ -131,5 +131,23 @@ def main():
     print("Delta Standard Monte Carlo Harrell-Davis Value-at-Risk:")
     print(delta_hd_var)
 
+    ################################################################################################
+    ### 9. Estimate the Delta-Gamma Value-at-Risk ###
+    ################################################################################################
+
+    delta_gamma_scenario_pnl = calc_delta_gamma_scenario_pnl(mkt_data=hist_data,
+                                        instr_info=instr_info,
+                                        ref_date=val_date,
+                                        scenario_shocks=mc_scenarios)
+
+    print("Delta-Gamma scenario profit-and-losses")
+    print(delta_gamma_scenario_pnl)
+
+    delta_gamma_hd_var = calc_standard_mc_hd_var(vals_df=delta_gamma_scenario_pnl,
+                                           conf_lvl=0.995)
+
+    print("Delta-Gamma Standard Monte Carlo Harrell-Davis Value-at-Risk:")
+    print(delta_gamma_hd_var)
+
 if __name__ == "__main__":
     main()
