@@ -1,17 +1,13 @@
 """Module providing functions for Delta-Gamma approximate valuation
    of the risk factors."""
 
+from typing import List, Tuple, Dict
+
 import numpy as np
 import pandas as pd
-
-from typing import List, Tuple, Dict
 
 from full_valuation import calc_prices
 from risk_aggregation import calc_portfolio_pnl
-
-from typing import List, Tuple
-import numpy as np
-import pandas as pd
 
 def _set_sensi_shocks(rfs: List[str]) -> Tuple[np.ndarray, np.ndarray]:
     """Function creating up and down shocks for each risk factor."""

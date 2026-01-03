@@ -1,12 +1,12 @@
 """"Module providing functions for full valuation of the risk factors."""
 
 import sys
+from typing import Dict
 
 import numpy as np
 import pandas as pd
 from scipy.stats import norm
 from numpy.typing import NDArray
-from typing import Dict
 
 from utils.introspection import get_pricing_arg_spec, get_pricing_func
 

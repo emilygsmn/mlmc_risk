@@ -1,7 +1,8 @@
 """Module providing data preprocessing helper functions."""
 
-import pandas as pd
 from typing import Dict
+
+import pandas as pd
 
 from utils.io_helpers import import_hist_market_data, import_riskfree_rates_from_file
 
