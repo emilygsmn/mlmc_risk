@@ -1,6 +1,7 @@
 """Module providing data preprocessing helper functions."""
 
 import pandas as pd
+from typing import Dict
 
 from utils.io_helpers import import_hist_market_data, import_riskfree_rates_from_file
 
@@ -49,10 +50,10 @@ def _add_valuation_tag(instr_info):
                 return "SWAP"
             # Equity put option
             if "EQ-PUT" in name:
-                return "EQPUT"
+                return "PUT"
             # Equity call option
             if "EQ-CALL" in name:
-                return "EQCALL"
+                return "CALL"
         else:
             return None
 
@@ -64,6 +65,46 @@ def _add_valuation_tag(instr_info):
 def _get_calib_target(instr_info):
     """Function selecting the calibration targets from the instrument meta data."""
     return instr_info[["fin_instr", "calibration_target"]]
+
+def _map_derivative_underlyings(instr_info: pd.DataFrame) -> Dict[str, str]:
+    """Function mapping the derivatives to their underlying assets."""
+
+    # Initialize the mapping dict
+    map_dict: Dict[str, str] = {}
+
+    # Filter DataFrame for equity derivatives data
+    der_mask = (
+        instr_info["fin_instr"].str.startswith("DER", na=False)
+        & instr_info["sector_level_1"].str.contains("EQ", na=False)
+    )
+    derivatives = instr_info.loc[der_mask]
+
+    # Filter possible underlyings
+    underlying_mask = instr_info["instr_type"].str.contains("Other-EQ", na=False)
+    underlyings = instr_info.loc[underlying_mask, ["issuer_short", "fin_instr"]]
+
+    # Build mapping
+    for _, der_row in derivatives.iterrows():
+
+        # Extract issuer abbreviated name for current derivative
+        issuer = der_row["issuer_short"]
+
+        # Match the underlyings by issuer abbreviation
+        match = underlyings.loc[
+            underlyings["issuer_short"] == issuer, "fin_instr"
+        ]
+
+        # Raise error if the matching was unsuccesful
+        if match.empty:
+            raise ValueError(
+                f"No underlying instrument found for derivative "
+                f"{der_row['fin_instr']} (issuer_short='{issuer}')"
+            )
+
+        # Insert mapping into dict if a match was found
+        map_dict[der_row["fin_instr"]] = match.iloc[0]
+
+    return map_dict
 
 def preproc_portfolio(port, instr_info):
     """Function preprocessing the portfolio composition and instrument meta data."""
@@ -92,7 +133,8 @@ def preproc_portfolio(port, instr_info):
         #"Other-EQ-EUR-PUBL-UK-TUKXG-NA-NA-NA",
         "Other-EQ-EUR-PUBL-US-SPTR500N-NA-NA-NA",
         "FX-GBP-NA-NA-NA-NA-NA-NA",
-        "FX-USD-NA-NA-NA-NA-NA-NA"
+        "FX-USD-NA-NA-NA-NA-NA-NA",
+        "DER-EUR-EQ-PUT-SX5T-NA-NA-05"
     ]
     port = port[port["fin_instr"].isin(selected_positions)]
     instr_info = instr_info[instr_info["fin_instr"].isin(selected_positions)]
@@ -101,7 +143,10 @@ def preproc_portfolio(port, instr_info):
     # Add a valuation tag
     instr_info = _add_valuation_tag(instr_info)
 
-    return port, instr_info
+    # Map derivatives to their underlyings
+    der_underlyings = _map_derivative_underlyings(instr_info)
+
+    return port, instr_info, der_underlyings
 
 def merge_ecb_with_yf(df_ecb: pd.DataFrame, df_yf: pd.DataFrame) -> pd.DataFrame:
     """Function merging historical data from ECB and Yahoo! Finance (only for common dates)."""

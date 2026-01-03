@@ -4,7 +4,7 @@
 import numpy as np
 import pandas as pd
 
-from typing import List, Tuple
+from typing import List, Tuple, Dict
 
 from full_valuation import calc_prices
 from risk_aggregation import calc_portfolio_pnl
@@ -23,7 +23,9 @@ def _set_sensi_shocks(rfs: List[str]) -> Tuple[np.ndarray, np.ndarray]:
 
 def _calc_delta_sensis(mkt_data: pd.DataFrame,
                        instr_info: pd.DataFrame,
-                       ref_date: str
+                       ref_date: str,
+                       param_config: dict,
+                       der_underlyings: Dict[str, str]
                        ) -> pd.Series:
     """Function calculating delta sensitivities of a portfolio."""
 
@@ -39,8 +41,10 @@ def _calc_delta_sensis(mkt_data: pd.DataFrame,
     down_shocks = pd.DataFrame(np.diag(-h_down), index=rfs, columns=rfs)
 
     # Calculate up/down instrument prices
-    up_price = calc_prices(mkt_data, instr_info, ref_date, up_shocks)
-    down_price = calc_prices(mkt_data, instr_info, ref_date, down_shocks)
+    up_price = calc_prices(mkt_data, instr_info, ref_date, param_config,
+                           der_underlyings, up_shocks)
+    down_price = calc_prices(mkt_data, instr_info, ref_date, param_config,
+                             der_underlyings, down_shocks)
 
     # Portfolio P&L change
     price_change = calc_portfolio_pnl(up_price - down_price).to_numpy().flatten()
@@ -60,7 +64,9 @@ def _build_diag_shock_df(rfs: list[str], h: np.ndarray) -> pd.DataFrame:
 
 def _calc_gamma_sensis(mkt_data: pd.DataFrame,
                        instr_info: pd.DataFrame,
-                       ref_date: str
+                       ref_date: str,
+                       param_config: dict,
+                       der_underlyings: Dict[str, str]
                        ) -> pd.DataFrame:
     """Function calculating the gamma and cross-gamma sensitivities of a portfolio."""
 
@@ -92,20 +98,28 @@ def _calc_gamma_sensis(mkt_data: pd.DataFrame,
         up_up_price = (calc_portfolio_pnl(calc_prices(mkt_data,
                                                       instr_info,
                                                       ref_date,
+                                                      param_config,
+                                                      der_underlyings,
                                                       shocks_up_up)).to_numpy().ravel())
         up_down_price = (calc_portfolio_pnl(calc_prices(mkt_data,
                                                         instr_info,
                                                         ref_date,
+                                                        param_config,
+                                                        der_underlyings,
                                                         shocks_up_down))
                                            .to_numpy().ravel())
         down_up_price = (calc_portfolio_pnl(calc_prices(mkt_data,
                                                         instr_info,
                                                         ref_date,
+                                                        param_config,
+                                                        der_underlyings,
                                                         shocks_down_up))
                                            .to_numpy().ravel())
         down_down_price = (calc_portfolio_pnl(calc_prices(mkt_data,
                                                           instr_info,
                                                           ref_date,
+                                                          param_config,
+                                                          der_underlyings,
                                                           shocks_down_down))
                                              .to_numpy().ravel())
 
@@ -118,30 +132,33 @@ def _calc_gamma_sensis(mkt_data: pd.DataFrame,
 
     return gamma
 
-
 def _get_greeks(mkt_data: pd.DataFrame,
                 instr_info: pd.DataFrame,
-                ref_date: str
+                ref_date: str,
+                param_config: dict,
+                der_underlyings: Dict[str, str]
                 ) -> pd.Series:
     """Function computing all first and second order portfolio sensitivities."""
 
     # Caculate first order portfolio sensitivities to the risk factors
-    deltas = _calc_delta_sensis(mkt_data, instr_info, ref_date)
+    deltas = _calc_delta_sensis(mkt_data, instr_info, ref_date, param_config, der_underlyings)
 
     # Calculate second order portfolio sensitivities to the risk factors
-    gammas = _calc_gamma_sensis(mkt_data, instr_info, ref_date)
+    gammas = _calc_gamma_sensis(mkt_data, instr_info, ref_date, param_config, der_underlyings)
 
     return deltas, gammas
 
 def calc_delta_scenario_pnl(mkt_data: pd.DataFrame,
                             instr_info: pd.DataFrame,
                             ref_date: str,
+                            param_config: dict,
+                            der_underlyings: Dict[str, str],
                             scenario_shocks: pd.DataFrame
                             ) -> pd.DataFrame:
     """Function calculating the scenario P&Ls approximated by Delta-Gamma method."""
 
     # Get the delta sensitivities of the portfolio to the risk factors
-    deltas, _ = _get_greeks(mkt_data, instr_info, ref_date)
+    deltas, _ = _get_greeks(mkt_data, instr_info, ref_date, param_config, der_underlyings)
 
     # Raise error if the inputs have mismatching risk factors
     factors = deltas.index
@@ -160,12 +177,14 @@ def calc_delta_scenario_pnl(mkt_data: pd.DataFrame,
 def calc_delta_gamma_scenario_pnl(mkt_data: pd.DataFrame,
                                   instr_info: pd.DataFrame,
                                   ref_date: str,
+                                  param_config: dict,
+                                  der_underlyings: Dict[str, str],
                                   scenario_shocks: pd.DataFrame
                                   ) -> pd.DataFrame:
     """Function calculating the scenario P&Ls approximated by Delta-Gamma method."""
 
     # Get the first and second order sensitivities of the portfolio to the risk factors
-    deltas, gammas = _get_greeks(mkt_data, instr_info, ref_date)
+    deltas, gammas = _get_greeks(mkt_data, instr_info, ref_date, param_config, der_underlyings)
 
     # Raise error if any of the inputs have mismatching risk factors
     factors = deltas.index

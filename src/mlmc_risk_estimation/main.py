@@ -40,11 +40,12 @@ def main():
     instr_info = get_instr_info(path_config["input"])
 
     # Preprocess the benchmark portfolio data
-    portfolio, instr_info = preproc_portfolio(port=portfolio, instr_info=instr_info)
+    portfolio, instr_info, der_underlyings = preproc_portfolio(port=portfolio,
+                                                               instr_info=instr_info)
 
     # Get historical data
     hist_data = get_historical_data(path_config, param_config, instr_info)
-    print("historical data:")
+    print("Historical data:")
     print(hist_data)
 
     ################################################################################################
@@ -55,6 +56,23 @@ def main():
     print("Calibration parameters")
     print(calib_param)
 
+    #Preliminary test calibration parameters with small volatilities
+
+    cols = ['IR_EUR_05', 'IR_EUR_10', 'IR_EUR_20',
+            'IR_EUR_01', 'IR_USD_01', 'IR_USD_03', 
+            'IR_USD_05', 'IR_USD_07', 'IR_USD_10',
+            'IR_USD_20', 'IR_USD_30', 'FX-GBP-NA-NA-NA-NA-NA-NA',
+            'Other-EQ-EUR-PUBL-EU-MSDEE15N-NA-NA-NA', 
+            'FX-USD-NA-NA-NA-NA-NA-NA',
+            'Other-EQ-EUR-PUBL-US-SPTR500N-NA-NA-NA',
+            'Other-EQ-EUR-PUBL-EU-SX5T-NA-NA-NA']
+
+    calib_param = pd.DataFrame(
+    [[0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.2, 0.2, 0.2, 0.07, 0.07]],
+    index=["sigma"],
+    columns=cols
+    )
+
     ################################################################################################
     ### 3. Price the portfolio instruments ###
     ################################################################################################
@@ -64,6 +82,8 @@ def main():
     base_values = calc_prices(mkt_data=hist_data,
                               instr_info=instr_info,
                               ref_date=val_date,
+                              param_config=param_config,
+                              der_underlyings=der_underlyings,
                               shocks=None
                               )
     print("Base values:")
@@ -82,7 +102,9 @@ def main():
     shocked_values = calc_prices(mkt_data=hist_data,
                             instr_info=instr_info,
                             ref_date=val_date,
-                            shocks=mc_scenarios
+                            param_config=param_config,
+                            der_underlyings=der_underlyings,
+                            shocks=mc_scenarios,
                             )
     print("Shocked values:")
     print(shocked_values)
@@ -120,6 +142,8 @@ def main():
     delta_scenario_pnl = calc_delta_scenario_pnl(mkt_data=hist_data,
                                         instr_info=instr_info,
                                         ref_date=val_date,
+                                        param_config=param_config,
+                                        der_underlyings=der_underlyings,
                                         scenario_shocks=mc_scenarios)
 
     print("Delta scenario profit-and-losses")
@@ -138,6 +162,8 @@ def main():
     delta_gamma_scenario_pnl = calc_delta_gamma_scenario_pnl(mkt_data=hist_data,
                                         instr_info=instr_info,
                                         ref_date=val_date,
+                                        param_config=param_config,
+                                        der_underlyings=der_underlyings,
                                         scenario_shocks=mc_scenarios)
 
     print("Delta-Gamma scenario profit-and-losses")

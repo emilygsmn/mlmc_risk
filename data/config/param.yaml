@@ -40,6 +40,15 @@ valuation:
       "BM"
     IR:
       "Shift_Geom_BM"
+  shock_type:
+    EQ:
+      "mult"
+    FX:
+      "mult"
+    IF:
+      "add"
+    IR:
+      "add"
   yf_ticker_map:
     Other-EQ-EUR-PUBL-EU-SX5T-NA-NA-NA: "^STOXX50E" # not net-return but price-return actually !!
     Other-EQ-EUR-PUBL-EU-MSDEE15N-NA-NA-NA: "IEUR"
