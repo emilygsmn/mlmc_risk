@@ -98,12 +98,15 @@ def _calc_EQ_price(mkt_rates: NDArray[np.floating]
 
 def _calc_ZCB_price(face_vals: NDArray[np.floating],
                      maturities: NDArray[np.floating],
-                     riskfree_rates: NDArray[np.floating]
+                     rfr_perc: NDArray[np.floating]
                      ) -> NDArray[np.floating]:
     """Function pricing a zero-coupon bond excl. inflation and credit risk."""
 
+    # Convert risk-free rates from percentages to decimals
+    rfr = rfr_perc / 100
+
     # Calculate the discount factors based on the shocked rates (continuous compounding)
-    exponent = - riskfree_rates * maturities
+    exponent = - rfr * maturities
     disc_fact = np.exp(exponent)
 
     # Calculate present values of the face values
@@ -113,17 +116,20 @@ def _calc_ZCB_price(face_vals: NDArray[np.floating],
 
 def _calc_ZCB_INFL_price(face_vals: NDArray[np.floating],
                          maturities: NDArray[np.floating],
-                         riskfree_rates: NDArray[np.floating],
+                         rfr_perc: NDArray[np.floating],
                          set_infl: NDArray[np.floating]
                          ) -> NDArray[np.floating]:
     """Function pricing an inflation-linked zero-coupon bond excl. credit risk."""
+
+    # Convert risk-free rates from percentages to decimals
+    rfr = rfr_perc / 100
 
     # Apply inflation to the face values
     infl_fact = (1 + set_infl) ** maturities
     infl_adj_face_vals = face_vals * infl_fact
 
     # Calculate the discount factors based on the shocked rates (discrete compounding)
-    disc_fact = 1 / (1 + riskfree_rates) ** maturities
+    disc_fact = 1 / (1 + rfr) ** maturities
 
     # Calculate present values of the face values
     prices = disc_fact * infl_adj_face_vals
@@ -132,17 +138,20 @@ def _calc_ZCB_INFL_price(face_vals: NDArray[np.floating],
 
 def _calc_ZCB_CS_price(face_vals: NDArray[np.floating],
                        maturities: NDArray[np.floating],
-                       riskfree_rates: NDArray[np.floating],
+                       rfr_perc: NDArray[np.floating],
                        cra_bps: NDArray[np.floating],
                        set_cs: NDArray[np.floating]
                        ) -> NDArray[np.floating]:
     """Function pricing a zero-coupon bond with credit risk, excl. inflation."""
 
+    # Convert risk-free rates from percentages to decimals
+    rfr = rfr_perc / 100
+
     # Convert credit risk adjustment from basis points to decimal
     cra = cra_bps / 10E+3
 
     # Calculate the discount factors based on the shocked rates (discrete compounding)
-    disc_fact = 1 / (1 + riskfree_rates + cra + set_cs) ** maturities
+    disc_fact = 1 / (1 + rfr + cra + set_cs) ** maturities
 
     # Calculate present values of the face values
     prices = disc_fact * face_vals
@@ -153,10 +162,13 @@ def _calc_PUT_price(
     spots: NDArray[np.floating],   # shape (n, k)
     strikes: NDArray[np.floating], # shape (k,)
     maturities: NDArray[np.floating],    # shape (k,)
-    riskfree_rates: NDArray[np.floating],    # shape (n, k)
+    rfr_perc: NDArray[np.floating],    # shape (n, k)
     volas: NDArray[np.floating],   # shape (n, k)
 ) -> NDArray[np.floating]:
     """Function calculating Black–Scholes prices for European put options."""
+
+    # Convert risk-free rates from percentages to decimals
+    rfr = rfr_perc / 100
 
     # Compute time scaling factor
     time_fact = np.sqrt(maturities)
@@ -164,13 +176,13 @@ def _calc_PUT_price(
     # Calculate parameters for Black-Scholes pricing function
     d1 = (
         np.log(spots / strikes)
-        + (riskfree_rates + 0.5 * volas**2) * maturities
+        + (rfr + 0.5 * volas**2) * maturities
     ) / (volas * time_fact)
     d2 = d1 - volas * time_fact
 
     # Calculate European put option prices
     prices = (
-        strikes * np.exp(-riskfree_rates * maturities) * norm.cdf(-d2)
+        strikes * np.exp(-rfr * maturities) * norm.cdf(-d2)
         - spots * norm.cdf(-d1)
     )
 
@@ -275,7 +287,7 @@ def calc_prices(mkt_data: pd.DataFrame,
             elif arg_name == "maturities":
                 return instr_indexed.loc[rf_needed, "maturity"].to_numpy(dtype=float)
 
-            elif arg_name == "riskfree_rates":
+            elif arg_name == "rfr_perc":
                 return _build_rf_shock_df(rf_needed=rf_needed, 
                                               instr_indexed=instr_indexed,
                                               shocked_rf_vals=shocked_rf_vals
@@ -284,7 +296,7 @@ def calc_prices(mkt_data: pd.DataFrame,
             elif arg_name == "volas":
                 underlying_cols = [der_underlyings[d] for d in rf_needed]
                 spots_data = final.loc[:, underlying_cols].to_numpy()
-                return spots_data / 5000
+                return spots_data / 50000
 
             elif arg_name == "face_vals":
                 return instr_indexed.loc[rf_needed, "notional_/_pos_units"].to_numpy(dtype=float)
