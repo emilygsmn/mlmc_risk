@@ -259,7 +259,7 @@ def calc_prices(mkt_data: pd.DataFrame,
                 if not is_base_scenario:
                     return shocked_rf_vals[rf_needed]
                 else:
-                    _get_mtm_base_value(mkt_data, ref_date, rf_needed).to_numpy()
+                    return _get_mtm_base_value(mkt_data, ref_date, rf_needed).to_numpy()
 
             elif arg_name == "spots":
                 underlying_cols = [der_underlyings[d] for d in rf_needed]
@@ -310,7 +310,7 @@ def calc_prices(mkt_data: pd.DataFrame,
         prices = price_func(*arg_values)
 
         # Assign prices directly into the final DataFrame
-        final.loc[:, rf_needed] = prices.astype(float)
+        final.loc[:, rf_needed] = prices
 
     # Convert all local currency prices to EUR
     final = _convert_loc_ccy_to_eur(final, instr_info)
