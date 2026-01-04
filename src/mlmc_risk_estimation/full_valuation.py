@@ -158,6 +158,36 @@ def _calc_ZCB_CS_price(face_vals: NDArray[np.floating],
 
     return prices
 
+def _calc_CALL_price(
+    spots: NDArray[np.floating],        # shape (n, k)
+    strikes: NDArray[np.floating],      # shape (k,)
+    maturities: NDArray[np.floating],   # shape (k,)
+    rfr_perc: NDArray[np.floating],  # shape (n, k)
+    volas: NDArray[np.floating],        # shape (n, k)
+) -> NDArray[np.floating]:
+    """Function calculating Black–Scholes prices for European call options."""
+
+    # Convert risk-free rates from percentages to decimals
+    rfr = rfr_perc / 100
+
+    # Compute time scaling factor
+    time_fact = np.sqrt(maturities)
+
+    # Calculate parameters for Black-Scholes pricing function
+    d1 = (
+        np.log(spots / strikes)
+        + (rfr + 0.5 * volas**2) * maturities
+    ) / (volas * time_fact)
+    d2 = d1 - volas * time_fact
+
+    # Calculate European call option prices
+    prices = (
+        spots * norm.cdf(d1)
+        - strikes * np.exp(-rfr * maturities) * norm.cdf(d2)
+    )
+
+    return prices
+
 def _calc_PUT_price(
     spots: NDArray[np.floating],   # shape (n, k)
     strikes: NDArray[np.floating], # shape (k,)
