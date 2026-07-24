@@ -1,8 +1,9 @@
 valuation:
   bm_portfolio: "EUR_BMP_01"
-  val_date: "2025-10-31"
+  val_date: "2026-06-30"
   hist_data_start: "2020-01-01"
-  hist_data_end: "2025-11-01"
+  hist_data_end: "2026-07-01"
+  sgbm_shift: 0.035  # shift parameter theta for shifted-GBM interest rate factors (decimal)
   calibr_methods:
     return_type:
       EQ:
@@ -13,6 +14,8 @@ valuation:
         "abs"
       IR:
         "rel"
+      EQVOL:
+        "abs"
     return_length:
       EQ:
         "week"
@@ -21,6 +24,8 @@ valuation:
       IF:
         "week"
       IR:
+        "quarter"
+      EQVOL:
         "quarter"
     conv_to_rel:
       EQ:
@@ -31,8 +36,10 @@ valuation:
         False
       IR:
         False
+      EQVOL:
+        False
   stoch_proc_map:
-    EQ: 
+    EQ:
       "Geom_BM"
     FX:
       "Geom_BM"
@@ -40,6 +47,8 @@ valuation:
       "BM"
     IR:
       "Shift_Geom_BM"
+    EQVOL:
+      "Geom_BM"
   shock_type:
     EQ:
       "mult"
@@ -49,11 +58,19 @@ valuation:
       "add"
     IR:
       "add"
+    EQVOL:
+      "mult"
   yf_ticker_map:
     Other-EQ-EUR-PUBL-EU-SX5T-NA-NA-NA: "^STOXX50E" # not net-return but price-return actually !!
     Other-EQ-EUR-PUBL-EU-MSDEE15N-NA-NA-NA: "IEUR"
-    Other-EQ-EUR-PUBL-UK-TUKXG-NA-NA-NA: "UKXDUK.L"
+    # iShares Core FTSE 100 UCITS ETF (Acc), a dividend-reinvesting proxy for the FTSE 100
+    # total-return index (the originally mapped ticker, UKXDUK.L, is delisted on Yahoo Finance)
+    Other-EQ-EUR-PUBL-UK-TUKXG-NA-NA-NA: "CUKX.L"
     Other-EQ-EUR-PUBL-US-SPTR500N-NA-NA-NA: "^SP500TR"
+    # project-added instruments (not in the original EIOPA MCRCS set), both EUR-native Xetra listings
+    Other-EQ-EUR-PUBL-EM-MXEF-NA-NA-NA: "IS3N.DE"  # iShares Core MSCI EM IMI UCITS ETF EUR (Acc)
+    Other-EQ-EUR-PUBL-DE-VNA-NA-NA-NA: "VNA.DE"    # Vonovia SE (single-name real estate)
+    Other-EQ-EUR-PUBL-US-NDX100-NA-NA-NA: "EQQQ.DE"  # Invesco EQQQ NASDAQ-100 UCITS ETF EUR
     FX-GBP-NA-NA-NA-NA-NA-NA: "GBPEUR=X"
     FX-USD-NA-NA-NA-NA-NA-NA: "USDEUR=X"
       

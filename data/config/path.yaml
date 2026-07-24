@@ -1,6 +1,6 @@
 input: 
   param_config: "data/config/param.yaml"
-  mcrcs_data: "data/raw/MCRCS_2024_instruments_and_BMP.xlsx"
+  mcrcs_data: "data/raw/MCRCS_2024_instruments_and_BMP_reduced.xlsx"
   portfolio_data:
     worksheet: "BMP_2024"
     rows_to_skip: 8
@@ -16,3 +16,13 @@ input:
       path: "data/raw/fred_rfr"
       date_col: 0
       data_col: 1
+  eqvol_data:
+    SPTR500N: "^VIX"
+    NDX100: "^VXN"  # CBOE Nasdaq-100 Volatility Index, for the DER-EUR-EQ-PUT-NDX100 option
+  boe_gilt_data:
+    files:
+      - "data/raw/GLC Nominal daily data_2016 to 2024.xlsx"
+      - "data/raw/GLC Nominal daily data_2025 to present.xlsx"
+    sheet: "4. spot curve"
+    maturity_row: 3
+    data_start_row: 6

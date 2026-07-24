@@ -1,0 +1,172 @@
+estimators:
+  - key: std_monte_carlo
+    name: "MC fine"
+    args:
+      samples:
+        type: 1
+        n: 500
+        model: "fine"
+      p: 0.05
+  - key: std_hd_monte_carlo
+    name: "HDMC fine"
+    args:
+      samples:
+        type: 1
+        n: 500
+        model: "fine"
+      p: 0.05
+  - key: std_monte_carlo
+    name: "MC coarse"
+    args:
+      samples:
+        type: 1
+        n: 125099
+        model: "coarse"
+      p: 0.05
+  - key: std_hd_monte_carlo
+    name: "HDMC coarse"
+    args:
+      samples:
+        type: 1
+        n: 125099
+        model: "coarse"
+      p: 0.05
+  - key: hd_multifidelity
+    name: "HDMF same samples a=0.5"
+    args:
+      fine_samples:
+        type: 1
+        n: 100
+      coarse_samples_few:
+        type: 1
+        n: 100
+      coarse_samples_many:
+        type: 1
+        n: 100000
+      a: 0.5
+      p: 0.05
+  - key: hd_multifidelity
+    name: "HDMF diff. samples a=0.5"
+    args:
+      fine_samples:
+        type: 1
+        n: 100
+      coarse_samples_few:
+        type: 2
+        n: 100
+      coarse_samples_many:
+        type: 2
+        n: 100000
+      a: 0.5
+      p: 0.05
+  - key: hd_multifidelity
+    name: "HDMF same samples a=1"
+    args:
+      fine_samples:
+        type: 1
+        n: 100
+      coarse_samples_few:
+        type: 1
+        n: 100
+      coarse_samples_many:
+        type: 1
+        n: 100000
+      a: 1
+      p: 0.05
+  - key: hd_multifidelity
+    name: "HDMF diff. samples a=1"
+    args:
+      fine_samples:
+        type: 1
+        n: 100
+      coarse_samples_few:
+        type: 2
+        n: 100
+      coarse_samples_many:
+        type: 2
+        n: 100000
+      a: 1
+      p: 0.05
+  - key: hd_multilevel_diff_of_os
+    name: "HDML-DOOS"
+    args:
+      fine_samples:
+        type: 1
+        n: 100
+      coarse_samples_few:
+        type: 1
+        n: 100
+      coarse_samples_many:
+        type: 2
+        n: 100000
+      p: 0.05
+  - key: hd_multilevel_os_of_diff
+    name: "HDML-OSOD"
+    args:
+      fine_samples:
+        type: 1
+        n: 100
+      coarse_samples_few:
+        type: 1
+        n: 100
+      coarse_samples_many:
+        type: 2
+        n: 100000
+      p: 0.05
+  - key: hd_multilevel_lin_induced_os
+    name: "HDML-LIOS lam=1"
+    args:
+      fine_samples:
+        type: 1
+        n: 100
+      coarse_samples_few:
+        type: 1
+        n: 100
+      coarse_samples_many:
+        type: 2
+        n: 100000
+      lam: 1.0
+      p: 0.05
+  - key: hd_multilevel_lin_induced_os
+    name: "HDML-LIOS lam=0.5"
+    args:
+      fine_samples:
+        type: 1
+        n: 100
+      coarse_samples_few:
+        type: 1
+        n: 100
+      coarse_samples_many:
+        type: 2
+        n: 100000
+      lam: 0.5
+      p: 0.05
+  - key: hd_multilevel_lin_induced_os
+    name: "HDML-LIOS lam=0"
+    args:
+      fine_samples:
+        type: 1
+        n: 100
+      coarse_samples_few:
+        type: 1
+        n: 100
+      coarse_samples_many:
+        type: 2
+        n: 100000
+      lam: 0.0
+      p: 0.05
+  - key: importance_sampling
+    name: "IS"
+    args: 
+      mc_scenarios: NA
+      corr_mat: NA
+      deltas: NA
+      gammas: NA
+      n_fine: 100
+      n_coarse:  100000
+      p: 0.05
+metrics:
+    - emp_mean
+    - emp_std_dev
+    - emp_variance
+    - std_error
